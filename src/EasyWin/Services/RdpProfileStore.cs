@@ -14,7 +14,7 @@ public class RdpProfileStore
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
-    public string StorePath => System.IO.Path.Combine(AppPaths.DataDir, "rdp.json");
+    public string StorePath => AppPaths.RdpProfilesPath;
 
     public List<RdpProfile> Load()
     {

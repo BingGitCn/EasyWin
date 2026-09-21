@@ -80,11 +80,53 @@ public class SystemInfoService
             if ((drive.DriveType != System.IO.DriveType.Fixed && drive.DriveType != System.IO.DriveType.Removable) || !drive.IsReady) continue;
             try
             {
-                disks.Add(new DiskInfo(drive.Name, drive.VolumeLabel, drive.TotalSize, drive.AvailableFreeSpace, drive.DriveType == System.IO.DriveType.Removable));
+                // 有些 U 盘/移动硬盘盒会向系统报告为 Fixed,再用底层 USB 通道兜底判定
+                var isRemovable = drive.DriveType == System.IO.DriveType.Removable || IsUsbDrive(drive.Name);
+                disks.Add(new DiskInfo(drive.Name, drive.VolumeLabel, drive.TotalSize, drive.AvailableFreeSpace, isRemovable));
             }
             catch { /* 个别盘符可能拒绝访问 */ }
         }
         return disks;
+    }
+
+    private static readonly Dictionary<string, bool> UsbDriveCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>判断盘符是否走 USB 存储(USBSTOR/UASP),结果缓存,避免每秒重复 WMI 查询。</summary>
+    private static bool IsUsbDrive(string driveName)
+    {
+        var key = driveName.TrimEnd('\\').ToUpperInvariant(); // "E:" 形式
+        if (UsbDriveCache.TryGetValue(key, out var cached)) return cached;
+
+        var result = false;
+        try
+        {
+            using var partitions = new ManagementObjectSearcher(
+                $"ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{key}'}} WHERE AssocClass=Win32_LogicalDiskToPartition");
+            foreach (var partition in partitions.Get())
+            {
+                var partitionId = (string)partition["DeviceID"];
+                using var diskSearcher = new ManagementObjectSearcher(
+                    $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partitionId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition");
+                foreach (var disk in diskSearcher.Get())
+                {
+                    var pnp = disk["PNPDeviceID"] as string ?? "";
+                    var media = disk["MediaType"] as string ?? "";
+                    // USBSTOR:传统 USB 存储;External:UASP 协议的移动硬盘/U 盘(枚举为 SCSI)
+                    if (pnp.StartsWith("USBSTOR", StringComparison.OrdinalIgnoreCase)
+                        || pnp.StartsWith("USB\\", StringComparison.OrdinalIgnoreCase)
+                        || media.Contains("External", StringComparison.OrdinalIgnoreCase))
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+                if (result) break;
+            }
+        }
+        catch { /* 查询失败按非 USB 处理 */ }
+
+        UsbDriveCache[key] = result;
+        return result;
     }
 
     /// <summary>Windows 激活状态(WMI SoftwareLicensingProduct,查询较慢,调用方应放后台线程)。1=已激活。</summary>

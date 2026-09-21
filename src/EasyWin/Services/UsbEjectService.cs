@@ -46,8 +46,9 @@ public static class UsbEjectService
         var problem = 0;
         if (CM_Get_DevNode_Status(out status, out problem, InstanceIdToDevNode(instanceId), 0) != CR_SUCCESS)
             return (false, "无法读取设备状态");
-        if ((status & DN_REMOVABLE) == 0)
-            return (false, "该设备不是可移动设备,无需弹出");
+        // 内部盘(NVMe/SATA)拒绝弹出;可移动或 USB 外接盘放行(调用方已按 IsRemovable 过滤)
+        if (instanceId.StartsWith("NVME\\", StringComparison.OrdinalIgnoreCase))
+            return (false, "系统盘不支持弹出");
 
         if (CM_Get_Parent(out var parent, InstanceIdToDevNode(instanceId), 0) != CR_SUCCESS)
             return (false, "无法定位父设备");
