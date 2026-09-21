@@ -159,7 +159,12 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ui:Card Width="326" Margin="0,0,12,12" Padding="16">
+                        <ui:Card Width="326" Margin="0,0,12,12" Padding="16" Cursor="Hand" ToolTip="双击打开磁盘">
+                            <ui:Card.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick"
+                                              Command="{Binding DataContext.OpenDiskCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                              CommandParameter="{Binding}" />
+                            </ui:Card.InputBindings>
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>

@@ -76,7 +76,8 @@ public class SystemInfoService
         var disks = new List<DiskInfo>();
         foreach (var drive in System.IO.DriveInfo.GetDrives())
         {
-            if (drive.DriveType != System.IO.DriveType.Fixed || !drive.IsReady) continue;
+            // 固定硬盘 + U 盘等可移动设备
+            if ((drive.DriveType != System.IO.DriveType.Fixed && drive.DriveType != System.IO.DriveType.Removable) || !drive.IsReady) continue;
             try
             {
                 disks.Add(new DiskInfo(drive.Name, drive.VolumeLabel, drive.TotalSize, drive.AvailableFreeSpace));

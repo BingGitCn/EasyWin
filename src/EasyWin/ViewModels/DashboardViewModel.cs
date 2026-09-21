@@ -45,6 +45,7 @@ public partial class DashboardViewModel : ObservableObject
             CpuName = await Task.Run(() => _system.GetCpuName()).ConfigureAwait(true);
 
             var disks = await Task.Run(() => _system.GetDisks()).ConfigureAwait(true);
+            _lastDiskSnapshot = DiskSnapshot(disks);
             Disks.Clear();
             foreach (var disk in disks) Disks.Add(disk);
 
@@ -90,6 +91,16 @@ public partial class DashboardViewModel : ObservableObject
 
             if (++_pingCounter % 10 == 0)
                 UpdatePingNow();
+
+            // 磁盘变化检测(U 盘插入/拔出自动刷新)
+            var disks = await System.Threading.Tasks.Task.Run(() => _system.GetDisks()).ConfigureAwait(true);
+            var snapshot = DiskSnapshot(disks);
+            if (snapshot != _lastDiskSnapshot)
+            {
+                _lastDiskSnapshot = snapshot;
+                Disks.Clear();
+                foreach (var disk in disks) Disks.Add(disk);
+            }
         }
         catch (Exception ex)
         {
@@ -98,6 +109,32 @@ public partial class DashboardViewModel : ObservableObject
         finally
         {
             System.Threading.Interlocked.Exchange(ref _tickInProgress, 0);
+        }
+    }
+
+    private string? _lastDiskSnapshot;
+
+    private static string DiskSnapshot(IEnumerable<DiskInfo> disks) =>
+        string.Join("|", disks.Select(d => $"{d.Drive}:{d.TotalBytes}:{d.FreeBytes}"));
+
+    /// <summary>双击磁盘卡片,在资源管理器中打开对应盘符。</summary>
+    [RelayCommand]
+    private void OpenDisk(DiskInfo? disk)
+    {
+        if (disk == null) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{disk.Drive}\"",
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error("打开磁盘失败", ex);
+            Toast.Error("打开磁盘失败:" + ex.Message);
         }
     }
 
