@@ -4,3 +4,4 @@ dist/
 shots/
 *.user
 .vs/
+.zcode/
