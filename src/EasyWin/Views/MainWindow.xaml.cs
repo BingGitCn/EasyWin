@@ -65,6 +65,7 @@ public partial class MainWindow : FluentWindow
         return pageArg.Substring("--page=".Length) switch
         {
             "网络与IP" or "network" => typeof(NetworkPage),
+            "wifi" or "Wi-Fi" => typeof(WifiPage),
             "IP方案" or "profiles" => typeof(ProfilesPage),
             "远程桌面" or "rdp" => typeof(RdpPage),
             "网络工具" or "nettools" => typeof(NetToolsPage),

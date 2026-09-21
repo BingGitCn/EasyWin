@@ -54,6 +54,8 @@
                                        TargetPageType="{x:Type views:DashboardPage}" />
                 <ui:NavigationViewItem Content="网络与 IP" Icon="{ui:SymbolIcon Router24}"
                                        TargetPageType="{x:Type views:NetworkPage}" />
+                <ui:NavigationViewItem Content="Wi-Fi" Icon="{ui:SymbolIcon Wifi124}"
+                                       TargetPageType="{x:Type views:WifiPage}" />
                 <ui:NavigationViewItem Content="IP 方案" Icon="{ui:SymbolIcon Copy24}"
                                        TargetPageType="{x:Type views:ProfilesPage}" />
                 <ui:NavigationViewItem Content="远程桌面" Icon="{ui:SymbolIcon Desktop24}"

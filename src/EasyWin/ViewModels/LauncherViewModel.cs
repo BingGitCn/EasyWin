@@ -12,6 +12,19 @@ public partial class LauncherViewModel : ObservableObject
 {
     public IReadOnlyList<LaunchGroup> Groups { get; } =
     [
+        new LaunchGroup("常用小工具", "Rocket24",
+        [
+            new LaunchItem("任务管理器", "进程与性能", "Grid24", "taskmgr"),
+            new LaunchItem("控制面板", "经典控制面板", "Settings24", "control"),
+            new LaunchItem("程序和功能", "卸载程序", "Delete24", "appwiz.cpl"),
+            new LaunchItem("凭据管理器", "保存的密码", "LockClosed24", "control.exe", "/name Microsoft.CredentialManager"),
+            new LaunchItem("计算器", "标准计算器", "Grid24", "calc"),
+            new LaunchItem("记事本", "文本编辑", "Book24", "notepad"),
+            new LaunchItem("画图", "图片编辑", "Edit24", "mspaint"),
+            new LaunchItem("截图工具", "区域截图", "Copy24", "snippingtool"),
+            new LaunchItem("命令提示符", "CMD", "Chat24", "cmd"),
+            new LaunchItem("PowerShell", "命令行", "Chat24", "powershell"),
+        ]),
         new LaunchGroup("系统工具", "Wrench24",
         [
             new LaunchItem("设备管理器", "硬件与驱动", "Settings24", "devmgmt.msc"),
@@ -53,19 +66,6 @@ public partial class LauncherViewModel : ObservableObject
             new LaunchItem("恢复", "重置/高级启动", "ArrowSync24", "ms-settings:recovery"),
             new LaunchItem("系统信息", "关于本机", "Info24", "ms-settings:about"),
             new LaunchItem("Windows 安全", "杀毒/防火墙", "ShieldCheckmark24", "ms-settings:windowsdefender"),
-        ]),
-        new LaunchGroup("常用小工具", "Rocket24",
-        [
-            new LaunchItem("任务管理器", "进程与性能", "Grid24", "taskmgr"),
-            new LaunchItem("控制面板", "经典控制面板", "Settings24", "control"),
-            new LaunchItem("程序和功能", "卸载程序", "Delete24", "appwiz.cpl"),
-            new LaunchItem("凭据管理器", "保存的密码", "LockClosed24", "control.exe", "/name Microsoft.CredentialManager"),
-            new LaunchItem("计算器", "标准计算器", "Grid24", "calc"),
-            new LaunchItem("记事本", "文本编辑", "Book24", "notepad"),
-            new LaunchItem("画图", "图片编辑", "Edit24", "mspaint"),
-            new LaunchItem("截图工具", "区域截图", "Copy24", "snippingtool"),
-            new LaunchItem("命令提示符", "CMD", "Chat24", "cmd"),
-            new LaunchItem("PowerShell", "命令行", "Chat24", "powershell"),
         ]),
     ];
 

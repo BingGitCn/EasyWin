@@ -23,20 +23,6 @@ public partial class NetworkViewModel : ObservableObject
 
     public ObservableCollection<NetworkAdapterInfo> Adapters { get; } = [];
 
-    public ObservableCollection<WlanNetwork> WlanNetworks { get; } = [];
-
-    [ObservableProperty]
-    private bool _isWlanAvailable;
-
-    [ObservableProperty]
-    private string _currentWifiText = "";
-
-    [ObservableProperty]
-    private bool _isWifiScanning;
-
-    /// <summary>Wi-Fi 密码输入窗口的回调,由视图层注入(需要窗口 Owner)。</summary>
-    public Func<string, string, Task<(bool confirmed, string? password)>>? PromptWifiPassword { get; set; }
-
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ApplyCommand))]
     [NotifyCanExecuteChangedFor(nameof(EnableAdapterCommand))]
@@ -78,11 +64,7 @@ public partial class NetworkViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        // 网卡与 Wi-Fi 并行扫描,总耗时取两者较慢者而非相加
-        var adapterTask = Task.Run(() => _network.GetAdapters());
-        var wifiTask = RefreshWifiAsync();
-
-        var adapters = await adapterTask.ConfigureAwait(true);
+        var adapters = await Task.Run(() => _network.GetAdapters()).ConfigureAwait(true);
         var selected = SelectedAdapter?.ConnectionName;
 
         Adapters.Clear();
@@ -90,95 +72,6 @@ public partial class NetworkViewModel : ObservableObject
 
         SelectedAdapter = Adapters.FirstOrDefault(a => a.ConnectionName == selected)
                           ?? Adapters.FirstOrDefault();
-
-        await wifiTask.ConfigureAwait(true);
-    }
-
-    /// <summary>刷新 Wi-Fi 部分(页面加载时自动执行)。</summary>
-    private async Task RefreshWifiAsync()
-    {
-        try
-        {
-            await ScanWifiCoreAsync().ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            Log.Warn("Wi-Fi 初始化失败: " + ex.Message);
-            IsWlanAvailable = false;
-        }
-    }
-
-    /// <summary>扫描附近 Wi-Fi(无 WLAN 接口时整段隐藏)。</summary>
-    [RelayCommand]
-    private async Task ScanWifiAsync()
-    {
-        if (IsWifiScanning) return;
-        await ScanWifiCoreAsync().ConfigureAwait(true);
-    }
-
-    private async Task ScanWifiCoreAsync()
-    {
-        IsWifiScanning = true;
-        try
-        {
-            var (available, networks, current) = await Task.Run(() =>
-            {
-                if (!WlanService.IsWlanAvailable())
-                    return (false, new List<WlanNetwork>(), (string?)null);
-                var cur = WlanService.GetCurrentSsid();
-                return (true, WlanService.ListNetworks(cur), cur);
-            }).ConfigureAwait(true);
-
-            IsWlanAvailable = available;
-            if (available)
-            {
-                WlanNetworks.Clear();
-                foreach (var n in networks) WlanNetworks.Add(n);
-                CurrentWifiText = current == null ? "未连接 Wi-Fi" : $"当前 Wi-Fi:{current}";
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error("扫描 Wi-Fi 失败", ex);
-            Toast.Error("扫描 Wi-Fi 失败:" + ex.Message);
-        }
-        finally
-        {
-            IsWifiScanning = false;
-        }
-    }
-
-    /// <summary>一键切换到指定 Wi-Fi。</summary>
-    [RelayCommand]
-    private async Task ConnectWifiAsync(WlanNetwork? network)
-    {
-        if (network == null || IsBusy) return;
-        if (network.Connected) { Toast.Show($"已连接「{network.Ssid}」", ToastType.Info); return; }
-
-        string? password = null;
-        if (PromptWifiPassword != null)
-        {
-            var (confirmed, pwd) = await PromptWifiPassword(network.Ssid, network.Auth).ConfigureAwait(true);
-            if (!confirmed) return;
-            password = pwd;
-        }
-
-        await RunBusyAsync(async () =>
-        {
-            var (ok, message) = await Task.Run(() => WlanService.ConnectAsync(network.Ssid, password, network.Auth)).ConfigureAwait(true);
-            if (!ok) { Toast.Error(message); return; }
-
-            var connected = await Task.Run(() => WlanService.WaitConnectedAsync(network.Ssid)).ConfigureAwait(true);
-            if (connected)
-            {
-                Toast.Success($"已连接「{network.Ssid}」");
-                await RefreshAsync().ConfigureAwait(true);
-            }
-            else
-            {
-                Toast.Warning($"「{network.Ssid}」连接未完成(密码错误或信号不稳),请重试或检查密码。");
-            }
-        }).ConfigureAwait(true);
     }
 
     partial void OnSelectedAdapterChanged(NetworkAdapterInfo? value)

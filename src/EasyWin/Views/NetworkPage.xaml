@@ -9,11 +9,6 @@
       d:DesignWidth="1000">
 
     <Grid Margin="24,8,24,24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid Grid.Row="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="360" />
             <ColumnDefinition Width="16" />
@@ -128,7 +123,7 @@
                         <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding SelectedAdapter.DnsServers}" FontSize="13" />
                     </Grid>
 
-                    <!-- 扩展属性:IPv6 / DNS 后缀 / MTU / 流量 -->
+                    <!-- 扩展属性:IPv6 / DNS 后缀 / DHCP 服务器 / 流量 -->
                     <Grid Margin="0,12,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -234,74 +229,5 @@
                 <TextBlock Text="正在执行网络操作…" Margin="0,12,0,0" HorizontalAlignment="Center" />
             </StackPanel>
         </Border>
-        </Grid>
-
-        <!-- Wi-Fi 快速切换(有 WLAN 接口时显示) -->
-        <ui:Card Grid.Row="1" Margin="0,16,0,0" Padding="16"
-                 Visibility="{Binding IsWlanAvailable, Converter={StaticResource BoolToVis}}">
-            <StackPanel>
-                <DockPanel Margin="0,0,0,12">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
-                                         Visibility="{Binding IsWifiScanning, Converter={StaticResource BoolToVis}}" />
-                        <TextBlock Text="正在扫描附近网络…" Style="{StaticResource CaptionText}" Margin="0,0,12,0"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding IsWifiScanning, Converter={StaticResource BoolToVis}}" />
-                        <ui:Button Content="重新扫描" Icon="{ui:SymbolIcon ArrowSync24}"
-                                   Appearance="Secondary" Command="{Binding ScanWifiCommand}"
-                                   IsEnabled="{Binding IsWifiScanning, Converter={StaticResource InverseBool}}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ui:SymbolIcon Symbol="Wifi124" FontSize="17" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="Wi-Fi 快速切换" FontSize="15" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding CurrentWifiText}" Style="{StaticResource CaptionText}" Margin="12,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                </DockPanel>
-
-                <ItemsControl ItemsSource="{Binding WlanNetworks}" MaxHeight="220">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Button HorizontalContentAlignment="Left" Cursor="Hand" Padding="10,6"
-                                        Background="Transparent" BorderThickness="0"
-                                        Command="{Binding DataContext.ConnectWifiCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                        CommandParameter="{Binding}">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="RowBg" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter />
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="RowBg" Property="Background" Value="#22FFFFFF" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ui:SymbolIcon Symbol="{Binding SignalSymbol}" FontSize="15"
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Text="{Binding Ssid}" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center" />
-                                        <Border CornerRadius="4" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center"
-                                                Background="#334CC38A" Visibility="{Binding Connected, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="已连接" FontSize="11" Foreground="#7ADFA9" />
-                                        </Border>
-                                    </StackPanel>
-                                </Button>
-                                <TextBlock Grid.Column="1" Text="{Binding SignalText}" Style="{StaticResource CaptionText}"
-                                           VerticalAlignment="Center" Margin="0,0,10,0" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <TextBlock Text="点击网络即可一键切换;新网络会弹出密码输入,密码将生成系统 Wi-Fi 配置文件。"
-                           Style="{StaticResource CaptionText}" Margin="0,10,0,0" />
-            </StackPanel>
-        </ui:Card>
     </Grid>
 </Page>
