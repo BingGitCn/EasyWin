@@ -15,7 +15,7 @@ public class NetworkService
         // 1) WMI:全部适配器(含已禁用),以 NetConnectionID 有值为准
         var wmiAdapters = new Dictionary<int, ManagementBaseObject>();
         using (var searcher = new ManagementObjectSearcher(
-            "SELECT Index, InterfaceIndex, NetConnectionID, Name, Description, NetEnabled, MACAddress, AdapterType, Speed " +
+            "SELECT Index, InterfaceIndex, NetConnectionID, Name, Description, NetEnabled, MACAddress, AdapterType, Speed, GUID " +
             "FROM Win32_NetworkAdapter WHERE NetConnectionID IS NOT NULL"))
         {
             foreach (var o in searcher.Get())
@@ -25,7 +25,7 @@ public class NetworkService
         // 2) WMI:IP 配置(Index 与上表对应,已禁用的网卡也能取到配置)
         var configs = new Dictionary<int, ManagementBaseObject>();
         using (var searcher = new ManagementObjectSearcher(
-            "SELECT Index, IPAddress, IPSubnet, DefaultIPGateway, DNSServerSearchOrder, DHCPEnabled " +
+            "SELECT Index, IPAddress, IPSubnet, DefaultIPGateway, DNSServerSearchOrder, DHCPEnabled, DHCPServer, DNSDomain " +
             "FROM Win32_NetworkAdapterConfiguration"))
         {
             foreach (var o in searcher.Get())
@@ -51,6 +51,7 @@ public class NetworkService
                 MacAddress = FormatMac((string?)adapter["MACAddress"]),
                 AdapterType = MapType((string?)adapter["AdapterType"], null),
                 IsEnabled = adapter["NetEnabled"] is bool enabled && enabled,
+                Guid = (string?)adapter["GUID"],
             };
 
             if (info.IsEnabled)
@@ -61,6 +62,13 @@ public class NetworkService
                     info.IsConnected = runtime.OperationalStatus == OperationalStatus.Up;
                     info.Speed = runtime.Speed > 0 ? runtime.Speed : null;
                     info.AdapterType = MapType((string?)adapter["AdapterType"], runtime.NetworkInterfaceType);
+
+                    var stats = runtime.GetIPStatistics();
+                    info.BytesReceived = stats.BytesReceived;
+                    info.BytesSent = stats.BytesSent;
+                    var mtu = runtime.GetIPProperties().GetIPv4Properties()?.Mtu;
+                    info.MtuText = mtu is > 0 ? mtu.ToString() : "—";
+                    info.DnsSuffix = runtime.GetIPProperties().DnsSuffix;
                 }
             }
 
@@ -70,6 +78,8 @@ public class NetworkService
                 (info.IpAddress, info.SubnetMask) = ExtractV4AddressAndMask(cfg);
                 info.Gateway = ExtractFirstV4(cfg["DefaultIPGateway"]);
                 info.DnsServers = ExtractJoinedV4(cfg["DNSServerSearchOrder"]);
+                info.DhcpServer = cfg["DHCPServer"] as string is { Length: > 0 } dhcpServer ? dhcpServer : null;
+                info.Ipv6Address = ExtractFirstV6(cfg["IPAddress"]);
             }
 
             result.Add(info);
@@ -208,6 +218,19 @@ public class NetworkService
         if (wmiArray is not string[] list) return null;
         foreach (var item in list)
             if (IsValidIPv4(item)) return item.Trim();
+        return null;
+    }
+
+    /// <summary>取第一个 IPv6 地址(含缩写,展示用)。</summary>
+    private static string? ExtractFirstV6(object? wmiArray)
+    {
+        if (wmiArray is not string[] list) return null;
+        foreach (var item in list)
+        {
+            if (item.Contains(':') && IPAddress.TryParse(item.Trim(), out var addr)
+                && addr.AddressFamily == AddressFamily.InterNetworkV6)
+                return addr.ToString();
+        }
         return null;
     }
 

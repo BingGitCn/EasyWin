@@ -28,6 +28,36 @@ public class NetworkAdapterInfo
 
     public bool DhcpEnabled { get; set; }
 
+    /// <summary>DHCP 服务器地址(静态配置时为 null)。</summary>
+    public string? DhcpServer { get; set; }
+
+    /// <summary>本连接的 DNS 后缀。</summary>
+    public string? DnsSuffix { get; set; }
+
+    /// <summary>第一个 IPv6 地址。</summary>
+    public string? Ipv6Address { get; set; }
+
+    /// <summary>开机以来的累计收发流量(字节),禁用/未知时为 null。</summary>
+    public long? BytesSent { get; set; }
+
+    public long? BytesReceived { get; set; }
+
+    /// <summary>系统网卡 GUID(shell 定位、打开属性用)。</summary>
+    public string? Guid { get; set; }
+
+    public string TrafficText => BytesSent == null || BytesReceived == null
+        ? "—"
+        : $"↓ {FormatTraffic(BytesReceived)} / ↑ {FormatTraffic(BytesSent)}";
+
+    public string MtuText { get; set; } = "—";
+
+    private static string FormatTraffic(long? bytes) => bytes switch
+    {
+        null or < 1L << 20 => "0 MB",
+        >= 1L << 30 => $"{bytes / (double)(1L << 30):0.#} GB",
+        _ => $"{bytes / (double)(1L << 20):0.#} MB"
+    };
+
     public string? IpAddress { get; set; }
 
     public string? SubnetMask { get; set; }

@@ -292,6 +292,25 @@ public partial class NetworkViewModel : ObservableObject
 
     private bool CanToggleState() => SelectedAdapter != null && !IsBusy;
 
+    /// <summary>打开"网络连接"面板(右键网卡即可看到属性;系统限制无法从命令行直达单网卡属性)。</summary>
+    [RelayCommand]
+    private void OpenAdapterProperties()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "ncpa.cpl",
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error("打开网络连接失败", ex);
+            Toast.Error("打开失败:" + ex.Message);
+        }
+    }
+
     /// <summary>把当前表单保存为一个配置方案。</summary>
     [RelayCommand(CanExecute = nameof(CanSaveAsProfile))]
     private void SaveAsProfile()

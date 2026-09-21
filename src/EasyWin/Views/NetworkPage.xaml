@@ -75,6 +75,9 @@
                 <StackPanel>
                     <DockPanel Margin="0,0,0,12">
                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ui:Button Content="属性" Icon="{ui:SymbolIcon Wrench24}" Appearance="Secondary" Margin="0,0,8,0"
+                                       ToolTip="打开网络连接面板,右键网卡可查看属性"
+                                       Command="{Binding OpenAdapterPropertiesCommand}" />
                             <ui:Button Content="启用" Icon="{ui:SymbolIcon Play24}" Appearance="Secondary" Margin="0,0,8,0"
                                        Command="{Binding EnableAdapterCommand}" />
                             <ui:Button Content="禁用" Icon="{ui:SymbolIcon Dismiss24}" Appearance="Danger"
@@ -123,6 +126,32 @@
 
                         <TextBlock Grid.Row="6" Grid.Column="0" Text="当前 DNS" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
                         <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding SelectedAdapter.DnsServers}" FontSize="13" />
+                    </Grid>
+
+                    <!-- 扩展属性:IPv6 / DNS 后缀 / MTU / 流量 -->
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="IPv6 地址" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedAdapter.Ipv6Address}" FontSize="13"
+                                   TextTrimming="CharacterEllipsis" Margin="0,0,24,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="DNS 后缀" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SelectedAdapter.DnsSuffix}" FontSize="13" MinWidth="70" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="DHCP 服务器" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedAdapter.DhcpServer}" FontSize="13" Margin="0,0,24,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="流量(收/发)" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding SelectedAdapter.TrafficText}" FontSize="13" MinWidth="70" />
                     </Grid>
                 </StackPanel>
             </ui:Card>
