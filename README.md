@@ -2,7 +2,9 @@
 
 网卡管理与 IP 一键切换 + Windows 系统设置工具箱。
 
-![技术栈](https://img.shields.io/badge/C%23%20%2F%20.NET%208-WPF-blue) ![UI](https://img.shields.io/badge/UI-WPF--UI%20Fluent-purple) ![平台](https://img.shields.io/badge/平台-Windows%2010%2F11-lightgrey)
+> 🤖 本软件完全由 AI 编写完成——包括全部代码、界面与文档,人类仅负责提出需求与验收。
+
+![技术栈](https://img.shields.io/badge/C%23%20%2F%20.NET%208-WPF-blue) ![UI](https://img.shields.io/badge/UI-WPF--UI%20Fluent-purple) ![平台](https://img.shields.io/badge/平台-Windows%2010%2F11-lightgrey) ![AI](https://img.shields.io/badge/由_AI_编写-100%25-8A2BE2)
 
 ## 功能
 

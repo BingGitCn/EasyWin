@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -37,8 +38,19 @@ public partial class WifiViewModel : ObservableObject
             {
                 if (!WlanService.IsWlanAvailable())
                     return (false, new List<WlanNetwork>(), (string?)null);
+
+                // 先触发系统主动扫描,否则 netsh 只返回缓存的旧结果
+                NativeWifiService.TriggerScan();
+                Thread.Sleep(2800);
+
                 var cur = WlanService.GetCurrentSsid();
-                return (true, WlanService.ListNetworks(cur), cur);
+                var networks = WlanService.ListNetworks(cur);
+                if (networks.Count <= 1)
+                {
+                    Thread.Sleep(2200); // 结果太少再等一次扫描完成
+                    networks = WlanService.ListNetworks(cur);
+                }
+                return (true, networks, cur);
             }).ConfigureAwait(true);
 
             IsWlanAvailable = available;
