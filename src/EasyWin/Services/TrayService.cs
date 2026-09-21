@@ -13,6 +13,7 @@ namespace EasyWin.Services;
 public class TrayService : IDisposable
 {
     private readonly WinForms.NotifyIcon _icon;
+    private readonly WinForms.ContextMenuStrip _menu;
     private readonly NetworkService _network;
     private readonly ProfileStore _profileStore;
     private readonly WifiViewModel _wifi;
@@ -36,18 +37,97 @@ public class TrayService : IDisposable
         using (var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/app.ico"))!.Stream)
             _icon.Icon = new Drawing.Icon(stream);
 
-        var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("打开 EasyWin", null, (_, _) => OpenRequested?.Invoke());
-        menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("IP 方案", null, null); // 子菜单项在每次展开时动态重建
-        menu.Items.Add("Wi-Fi", null, null);
-        menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => ExitRequested?.Invoke());
-        menu.Opening += (_, _) => RebuildDynamicItems(menu);
+        _menu = new WinForms.ContextMenuStrip
+        {
+            ShowImageMargin = false, // 不留图片条,菜单更紧凑
+        };
+        _menu.Items.Add("打开 EasyWin", null, (_, _) => OpenRequested?.Invoke());
+        _menu.Items.Add(new WinForms.ToolStripSeparator());
+        _menu.Items.Add("Wi-Fi", null, null);      // 高频操作放前面
+        _menu.Items.Add("IP 方案", null, null);    // 子菜单项在每次展开时动态重建
+        _menu.Items.Add(new WinForms.ToolStripSeparator());
+        _menu.Items.Add("退出", null, (_, _) => ExitRequested?.Invoke());
+        _menu.Opening += OnMenuOpening;
 
-        _icon.ContextMenuStrip = menu;
+        _icon.ContextMenuStrip = _menu;
         _icon.DoubleClick += (_, _) => OpenRequested?.Invoke();
         _icon.MouseClick += (_, e) => { if (e.Button == WinForms.MouseButtons.Left) OpenRequested?.Invoke(); };
+    }
+
+    private void OnMenuOpening(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        RebuildDynamicItems(_menu);
+        ApplyMenuTheme(); // 重建后再上色,动态生成的子项也能覆盖到
+    }
+
+    /// <summary>菜单配色跟随应用主题。WinForms 菜单默认是浅色系统样式,与 Fluent 界面不搭,这里整体重画。</summary>
+    private void ApplyMenuTheme()
+    {
+        var dark = SettingsStore.Theme;
+        _menu.Renderer = new FluentMenuRenderer(dark);
+        PaintItems(_menu.Items, dark);
+    }
+
+    private static void PaintItems(WinForms.ToolStripItemCollection items, bool dark)
+    {
+        foreach (var item in items.OfType<WinForms.ToolStripMenuItem>())
+        {
+            item.ForeColor = dark ? Drawing.Color.FromArgb(0xF2, 0xF2, 0xF2) : Drawing.Color.FromArgb(0x1B, 0x1B, 0x1B);
+            PaintItems(item.DropDownItems, dark);
+        }
+    }
+
+    /// <summary>Fluent 风格菜单渲染:纯色底、细边框、悬停浅色叠加,深浅色随应用主题。</summary>
+    private sealed class FluentMenuRenderer : WinForms.ToolStripProfessionalRenderer
+    {
+        private readonly bool _dark;
+
+        public FluentMenuRenderer(bool dark) : base(new MenuColorTable(dark))
+        {
+            _dark = dark;
+            RoundedEdges = false;
+        }
+
+        protected override void OnRenderMenuItemBackground(WinForms.ToolStripItemRenderEventArgs e)
+        {
+            if (!e.Item.Selected && !e.Item.Pressed)
+                return; // 不画基类渐变,未悬停时保持纯色底
+            var rect = new Drawing.Rectangle(1, 1, e.Item.Width - 2, e.Item.Height - 2);
+            var overlay = Drawing.Color.FromArgb(_dark ? 0x30 : 0x14, 0x88, 0x88, 0x88);
+            using var brush = new Drawing.SolidBrush(overlay);
+            e.Graphics.FillRectangle(brush, rect);
+        }
+    }
+
+    private sealed class MenuColorTable : WinForms.ProfessionalColorTable
+    {
+        private readonly bool _dark;
+
+        public MenuColorTable(bool dark) => _dark = dark;
+
+        private Drawing.Color Background => _dark
+            ? Drawing.Color.FromArgb(0x2B, 0x2B, 0x2B)
+            : Drawing.Color.FromArgb(0xFC, 0xFC, 0xFC);
+
+        public override Drawing.Color ToolStripDropDownBackground => Background;
+        public override Drawing.Color ImageMarginGradientBegin => Background;
+        public override Drawing.Color ImageMarginGradientMiddle => Background;
+        public override Drawing.Color ImageMarginGradientEnd => Background;
+        public override Drawing.Color MenuItemPressedGradientBegin => Background;
+        public override Drawing.Color MenuItemPressedGradientEnd => Background;
+        public override Drawing.Color MenuItemSelected => _dark
+            ? Drawing.Color.FromArgb(0x3A, 0x3A, 0x3A)
+            : Drawing.Color.FromArgb(0xE9, 0xE9, 0xE9);
+        public override Drawing.Color MenuItemSelectedGradientBegin => MenuItemSelected;
+        public override Drawing.Color MenuItemSelectedGradientEnd => MenuItemSelected;
+        public override Drawing.Color MenuBorder => _dark
+            ? Drawing.Color.FromArgb(0x3A, 0xFF, 0xFF, 0xFF)
+            : Drawing.Color.FromArgb(0x22, 0x00, 0x00, 0x00);
+        public override Drawing.Color MenuItemBorder => Drawing.Color.Transparent;
+        public override Drawing.Color SeparatorDark => _dark
+            ? Drawing.Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)
+            : Drawing.Color.FromArgb(0x14, 0x00, 0x00, 0x00);
+        public override Drawing.Color SeparatorLight => SeparatorDark;
     }
 
     /// <summary>首次隐藏到托盘时提示一次,告知窗口还能从托盘找回。</summary>
