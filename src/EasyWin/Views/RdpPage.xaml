@@ -1,0 +1,115 @@
+<Page x:Class="EasyWin.Views.RdpPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="700"
+      d:DesignWidth="1000">
+
+    <Grid Margin="24,8,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题与工具栏 -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <ui:Button DockPanel.Dock="Right" Content="新建连接" Icon="{ui:SymbolIcon Add24}" Appearance="Primary"
+                       Command="{Binding NewCommand}" VerticalAlignment="Center" />
+            <StackPanel>
+                <TextBlock Text="远程桌面" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="保存 mstsc 连接配置,一键发起远程控制" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
+                        <WrapPanel ItemWidth="318" ItemHeight="220" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Width="306" Height="208" Margin="0,0,12,12" Padding="16">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <ui:Button Icon="{ui:SymbolIcon Edit24}" Appearance="Secondary" Padding="8,5" Margin="0,0,6,0"
+                                                   ToolTip="编辑"
+                                                   Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Padding="8,5"
+                                                   ToolTip="删除"
+                                                   Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                    <ui:Button Content="一键连接" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
+                                               HorizontalAlignment="Left"
+                                               Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}" />
+                                </DockPanel>
+
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
+                                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DisplayText}" FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+
+                                    <TextBlock Margin="0,8,0,0" FontSize="13" FontWeight="SemiBold"
+                                               Text="{Binding Server}" TextTrimming="CharacterEllipsis" />
+
+                                    <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionText}">
+                                        <Run Text="用户:" />
+                                        <Run Text="{Binding UserName, Mode=OneWay, TargetNullValue=连接时输入}" />
+                                    </TextBlock>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Border CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
+                                                Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                                <Run Text="凭据:" />
+                                                <Run Text="{Binding RememberPassword, Mode=OneWay, Converter={StaticResource BoolToRemember}}" />
+                                            </TextBlock>
+                                        </Border>
+                                        <Border CornerRadius="4" Padding="8,2"
+                                                Background="#33E2B93B"
+                                                Visibility="{Binding AdminSession, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="管理模式" FontSize="11" Foreground="#E2B93B" />
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- 空态 -->
+        <TextBlock Grid.Row="1"
+                   Text="还没有连接方案,点击右上角「新建连接」保存常用的远程桌面配置"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+    </Grid>
+</Page>

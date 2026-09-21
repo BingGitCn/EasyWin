@@ -1,0 +1,112 @@
+<Page x:Class="EasyWin.Views.ProfilesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="700"
+      d:DesignWidth="1000">
+
+    <Grid Margin="24,8,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 标题与工具栏 -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:Button Content="从网卡导入" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Secondary" Margin="0,0,8,0"
+                           Command="{Binding ImportFromAdapterCommand}" />
+                <ui:Button Content="新建方案" Icon="{ui:SymbolIcon Add24}" Appearance="Primary"
+                           Command="{Binding NewCommand}" />
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="IP 方案" Style="{StaticResource PageTitleText}" />
+                <TextBlock Text="把每块网卡的常用 IP 配置保存为方案,一键切换网络环境" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
+                        <WrapPanel ItemWidth="318" ItemHeight="260" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:Card Width="306" Height="248" Margin="0,0,12,12" Padding="16">
+                            <DockPanel>
+                                <!-- 操作按钮固定底部,卡片统一高度 -->
+                                <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <ui:Button Icon="{ui:SymbolIcon Edit24}" Appearance="Secondary" Padding="8,5" Margin="0,0,6,0"
+                                                   ToolTip="编辑"
+                                                   Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Padding="8,5"
+                                                   ToolTip="删除"
+                                                   Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                    <ui:Button Content="一键应用" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
+                                               HorizontalAlignment="Left"
+                                               Command="{Binding DataContext.ApplyCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}" />
+                                </DockPanel>
+
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
+                                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding ModeText}" FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+
+                                    <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionText}">
+                                        <Run Text="网卡:" />
+                                        <Run Text="{Binding AdapterName, Mode=OneWay}" FontWeight="SemiBold" />
+                                    </TextBlock>
+
+                                    <TextBlock Text="{Binding Summary}" Margin="0,8,0,0" FontSize="12" LineHeight="18"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </ui:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        <!-- 空态 -->
+        <TextBlock Grid.Row="1"
+                   Text="还没有配置方案,点击右上角「新建方案」或「从网卡导入」开始"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <!-- 忙碌遮罩 -->
+        <Border Grid.RowSpan="2" Background="#66000000"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ui:ProgressRing Width="52" Height="52" IsIndeterminate="True" />
+                <TextBlock Text="正在切换网络配置…" Margin="0,12,0,0" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

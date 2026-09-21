@@ -1,0 +1,270 @@
+<Page x:Class="EasyWin.Views.NetworkPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="700"
+      d:DesignWidth="1000">
+
+    <Grid Margin="24,8,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 左:网卡列表 -->
+        <DockPanel Grid.Column="0">
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                <ui:Button DockPanel.Dock="Right"
+                           Icon="{ui:SymbolIcon ArrowSync24}"
+                           Appearance="Secondary"
+                           ToolTip="刷新列表"
+                           Command="{Binding RefreshCommand}" />
+                <TextBlock Text="网卡列表" Style="{StaticResource SectionTitleText}" Margin="0" VerticalAlignment="Center" />
+            </DockPanel>
+
+            <ui:Card Padding="4">
+                <ListBox ItemsSource="{Binding Adapters}"
+                         SelectedItem="{Binding SelectedAdapter, Mode=TwoWay}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Width="9" Height="9" Fill="{Binding StatusColor}"
+                                         Margin="0,0,10,0" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding ConnectionName}" FontSize="14" FontWeight="SemiBold" />
+                                    <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                               Text="{Binding ListSummary}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <ui:SymbolIcon Grid.Column="2" Symbol="{Binding TypeSymbol}" FontSize="16"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                               VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </ui:Card>
+        </DockPanel>
+
+        <!-- 右:选中网卡的详情与配置 -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 网卡详情 -->
+            <ui:Card Grid.Row="0" Padding="18">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ui:Button Content="启用" Icon="{ui:SymbolIcon Play24}" Appearance="Secondary" Margin="0,0,8,0"
+                                       Command="{Binding EnableAdapterCommand}" />
+                            <ui:Button Content="禁用" Icon="{ui:SymbolIcon Dismiss24}" Appearance="Danger"
+                                       Command="{Binding DisableAdapterCommand}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding SelectedAdapter.ConnectionName}" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <Border Background="#33E2B93B" CornerRadius="4" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SelectedAdapter.StatusText}" FontSize="11" />
+                            </Border>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="8" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="网卡型号" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedAdapter.Description}" TextTrimming="CharacterEllipsis" FontSize="13"
+                                   ToolTip="{Binding SelectedAdapter.Description}" Margin="0,0,24,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="接口速率" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="0" Grid.Column="3" Text="{Binding SelectedAdapter.SpeedText}" FontSize="13" MinWidth="70" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="MAC 地址" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedAdapter.MacAddress}" FontSize="13" Margin="0,0,24,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="地址获取" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding SelectedAdapter.DhcpText}" FontSize="13" MinWidth="70" />
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="当前 IP" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedAdapter.IpPrefixText}" FontSize="13" Margin="0,0,24,0" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Text="当前网关" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding SelectedAdapter.Gateway}" FontSize="13" MinWidth="70" />
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="当前 DNS" Style="{StaticResource FieldLabelText}" Margin="0,0,16,0" />
+                        <TextBlock Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding SelectedAdapter.DnsServers}" FontSize="13" />
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- IP 配置表单 -->
+            <ui:Card Grid.Row="2" Padding="18">
+                <StackPanel>
+                    <TextBlock Text="IP 配置" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <RadioButton Content="DHCP 自动获取" GroupName="IpMode" Margin="0,0,24,0"
+                                     IsChecked="{Binding IsStaticMode, Converter={StaticResource InverseBool}, Mode=TwoWay}" />
+                        <RadioButton Content="静态 IP" GroupName="IpMode"
+                                     IsChecked="{Binding IsStaticMode, Mode=TwoWay}" />
+                    </StackPanel>
+
+                    <Grid IsEnabled="{Binding IsStaticMode}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <TextBlock Text="IP 地址" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="192.168.1.100" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <TextBlock Text="子网掩码" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Text="{Binding SubnetMask, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="255.255.255.0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Text="默认网关(可留空)" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Text="{Binding Gateway, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="192.168.1.1" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Text="首选 DNS(可留空)" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Text="{Binding Dns1, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="223.5.5.5" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="4" Grid.Column="0">
+                            <TextBlock Text="备用 DNS(可留空)" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Text="{Binding Dns2, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="114.114.114.114" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,6,0,0">
+                            <ui:Button Content="应用配置" Icon="{ui:SymbolIcon Checkmark24}" Appearance="Primary"
+                                       Padding="26,7" Command="{Binding ApplyCommand}" />
+                            <ui:Button Content="保存为方案" Icon="{ui:SymbolIcon Save24}" Appearance="Secondary" Margin="10,0,0,0"
+                                       Command="{Binding SaveAsProfileCommand}" />
+                            <TextBlock Text="切换过程中网络会短暂中断" VerticalAlignment="Center" Margin="14,0,0,0"
+                                       Style="{StaticResource CaptionText}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+        </Grid>
+
+        <!-- 忙碌遮罩 -->
+        <Border Grid.ColumnSpan="3"
+                Background="#66000000"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ui:ProgressRing Width="52" Height="52" IsIndeterminate="True" />
+                <TextBlock Text="正在执行网络操作…" Margin="0,12,0,0" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+        </Grid>
+
+        <!-- Wi-Fi 快速切换(有 WLAN 接口时显示) -->
+        <ui:Card Grid.Row="1" Margin="0,16,0,0" Padding="16"
+                 Visibility="{Binding IsWlanAvailable, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <DockPanel Margin="0,0,0,12">
+                    <ui:Button DockPanel.Dock="Right" Content="重新扫描" Icon="{ui:SymbolIcon ArrowSync24}"
+                               Appearance="Secondary" Command="{Binding ScanWifiCommand}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Wifi124" FontSize="17" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="Wi-Fi 快速切换" FontSize="15" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding CurrentWifiText}" Style="{StaticResource CaptionText}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+
+                <ItemsControl ItemsSource="{Binding WlanNetworks}" MaxHeight="220">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button HorizontalContentAlignment="Left" Cursor="Hand" Padding="10,6"
+                                        Background="Transparent" BorderThickness="0"
+                                        Command="{Binding DataContext.ConnectWifiCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="RowBg" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="RowBg" Property="Background" Value="#22FFFFFF" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="{Binding SignalSymbol}" FontSize="15"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Ssid}" FontSize="13" Margin="10,0,0,0" VerticalAlignment="Center" />
+                                        <Border CornerRadius="4" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center"
+                                                Background="#334CC38A" Visibility="{Binding Connected, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="已连接" FontSize="11" Foreground="#7ADFA9" />
+                                        </Border>
+                                    </StackPanel>
+                                </Button>
+                                <TextBlock Grid.Column="1" Text="{Binding SignalText}" Style="{StaticResource CaptionText}"
+                                           VerticalAlignment="Center" Margin="0,0,10,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="点击网络即可一键切换;新网络会弹出密码输入,密码将生成系统 Wi-Fi 配置文件。"
+                           Style="{StaticResource CaptionText}" Margin="0,10,0,0" />
+            </StackPanel>
+        </ui:Card>
+    </Grid>
+</Page>

@@ -1,0 +1,52 @@
+<Page x:Class="EasyWin.Views.LauncherPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="900"
+      d:DesignWidth="1000">
+
+        <StackPanel Margin="24,8,24,24" MaxWidth="1020" HorizontalAlignment="Left">
+            <TextBlock Text="快捷启动" Style="{StaticResource PageTitleText}" />
+            <TextBlock Text="常用系统工具一键直达" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+
+            <ItemsControl ItemsSource="{Binding Groups}" Margin="0,8,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Title}" Style="{StaticResource SectionTitleText}" />
+                            <ItemsControl ItemsSource="{Binding Items}" Margin="0,0,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <ui:CardAction Width="196" Margin="0,0,10,10" Padding="14,12"
+                                                   Command="{Binding DataContext.LaunchCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="36" Height="36" CornerRadius="8"
+                                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                    VerticalAlignment="Center">
+                                                <ui:SymbolIcon Symbol="{Binding Symbol}" FontSize="17" />
+                                            </Border>
+                                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Description}" FontSize="11"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </ui:CardAction>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+</Page>

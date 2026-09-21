@@ -1,0 +1,98 @@
+<Page x:Class="EasyWin.Views.TweaksPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:controls="clr-namespace:EasyWin.Controls"
+      mc:Ignorable="d"
+      d:DesignHeight="900"
+      d:DesignWidth="1000">
+
+        <StackPanel Margin="24,8,24,24" MaxWidth="900" HorizontalAlignment="Left">
+
+            <TextBlock Text="系统设置" Style="{StaticResource PageTitleText}" />
+            <TextBlock Text="一键切换 Windows 行为,所有调整均可逆" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+
+            <TextBlock Text="Windows 更新" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding UpdateSection}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:TweakCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="桌面外观" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding AppearanceSection}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:TweakCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ui:Card Padding="14">
+                <DockPanel>
+                    <ui:Button DockPanel.Dock="Right" Content="重启资源管理器" Icon="{ui:SymbolIcon ArrowSync24}"
+                               Appearance="Secondary" Command="{Binding RestartExplorerCommand}" />
+                    <TextBlock Text="快捷方式小箭头等外观修改需要重启资源管理器才能生效"
+                               Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                </DockPanel>
+            </ui:Card>
+
+            <TextBlock Text="性能与安全" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding PerformanceSection}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:TweakCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- 电源计划 -->
+            <ui:Card Padding="16" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="电源计划" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Text="高性能适合插电办公与游戏,节能适合外出续航" Style="{StaticResource CaptionText}" Margin="0,0,0,12" />
+                    <ItemsControl ItemsSource="{Binding PowerPlans}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding DataContext.SetPowerPlanCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}" Margin="0,0,8,0" Padding="16,6" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Root"
+                                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                                    BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                             Fill="Transparent" x:Name="Dot" />
+                                                    <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter TargetName="Root" Property="Background" Value="#26FFFFFF" />
+                                                    <Setter TargetName="Dot" Property="Fill" Value="#5CB87A" />
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Root" Property="Background" Value="#33FFFFFF" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ui:Card>
+
+        </StackPanel>
+</Page>

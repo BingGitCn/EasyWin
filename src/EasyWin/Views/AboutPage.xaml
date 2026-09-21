@@ -1,0 +1,71 @@
+<Page x:Class="EasyWin.Views.AboutPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DesignHeight="700"
+      d:DesignWidth="1000">
+
+        <StackPanel Margin="24,8,24,24" MaxWidth="760" HorizontalAlignment="Left">
+
+            <TextBlock Text="关于" Style="{StaticResource PageTitleText}" />
+
+            <!-- 应用信息 -->
+            <ui:Card Padding="18" Margin="0,18,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="pack://application:,,,/Assets/app.png" Width="56" Height="56" />
+                    <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="EasyWin" FontSize="19" FontWeight="SemiBold" />
+                        <TextBlock Margin="0,4,0,0" Style="{StaticResource CaptionText}">
+                            <Run Text="版本" />
+                            <Run Text="{Binding VersionText, Mode=OneWay}" FontWeight="SemiBold" />
+                            <Run Text="·" />
+                            <Run Text="作者" />
+                            <Run Text="Bing" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <Border CornerRadius="4" Padding="8,2" Background="#334CC38A" Margin="0,0,8,0">
+                                <TextBlock FontSize="11" Foreground="#7ADFA9" Text="以管理员身份运行" />
+                            </Border>
+                            <TextBlock Text="网卡切换 + 系统设置 · WPF / .NET 8 / WPF-UI"
+                                       Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- 主题 -->
+            <TextBlock Text="外观" Style="{StaticResource SectionTitleText}" />
+            <ui:Card Padding="18">
+                <DockPanel>
+                    <ui:ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding IsDarkTheme, Mode=TwoWay}" />
+                    <StackPanel>
+                        <TextBlock Text="深色主题" FontSize="14" FontWeight="SemiBold" />
+                        <TextBlock Text="关闭后切换为浅色主题" Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </DockPanel>
+            </ui:Card>
+
+            <!-- 数据 -->
+            <TextBlock Text="数据" Style="{StaticResource SectionTitleText}" />
+            <ui:Card Padding="18">
+                <StackPanel>
+                    <TextBlock Text="IP 方案文件(profiles.json)" FontSize="14" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding StorePath}" Style="{StaticResource CaptionText}" Margin="0,4,0,0"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding StorePath}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ui:Button Content="打开数据目录" Icon="{ui:SymbolIcon Folder24}" Appearance="Secondary"
+                                   Margin="0,0,10,0" Command="{Binding OpenDataFolderCommand}" />
+                        <ui:Button Content="查看方案文件" Icon="{ui:SymbolIcon Open24}" Appearance="Secondary"
+                                   Command="{Binding OpenStoreFolderCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </ui:Card>
+
+            <TextBlock Text="提示:应用需要管理员权限运行才能修改 IP 与系统设置;所有系统调整均可在原处恢复。"
+                       Style="{StaticResource CaptionText}" Margin="0,22,0,0" />
+
+        </StackPanel>
+</Page>

@@ -1,0 +1,86 @@
+<ui:FluentWindow x:Class="EasyWin.Views.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:views="clr-namespace:EasyWin.Views"
+                 mc:Ignorable="d"
+                 Title="EasyWin"
+                 Width="1180"
+                 Height="780"
+                 MinWidth="980"
+                 MinHeight="640"
+                 WindowStartupLocation="CenterScreen"
+                 Icon="pack://application:,,,/Assets/app.ico"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica"
+                 WindowCornerPreference="Round"
+                 FontFamily="{DynamicResource AppFont}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0"
+                     Title="EasyWin · Windows 一站式管理工具"
+                     Padding="12,6"
+                     Background="Transparent">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/app.png" />
+            </ui:TitleBar.Icon>
+            <ui:TitleBar.TrailingContent>
+                <Border Background="#334CC38A"
+                        CornerRadius="4"
+                        Padding="8,2"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="管理员模式" FontSize="11" Foreground="#7ADFA9" />
+                </Border>
+            </ui:TitleBar.TrailingContent>
+        </ui:TitleBar>
+
+        <ui:NavigationView Grid.Row="1"
+                           x:Name="RootNavigation"
+                           PaneDisplayMode="Left"
+                           OpenPaneLength="200"
+                           IsBackButtonVisible="Collapsed"
+                           IsPaneToggleVisible="True">
+
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="仪表盘" Icon="{ui:SymbolIcon Home24}"
+                                       TargetPageType="{x:Type views:DashboardPage}" />
+                <ui:NavigationViewItem Content="网络与 IP" Icon="{ui:SymbolIcon Router24}"
+                                       TargetPageType="{x:Type views:NetworkPage}" />
+                <ui:NavigationViewItem Content="IP 方案" Icon="{ui:SymbolIcon Copy24}"
+                                       TargetPageType="{x:Type views:ProfilesPage}" />
+                <ui:NavigationViewItem Content="远程桌面" Icon="{ui:SymbolIcon Desktop24}"
+                                       TargetPageType="{x:Type views:RdpPage}" />
+                <ui:NavigationViewItem Content="网络工具" Icon="{ui:SymbolIcon Link24}"
+                                       TargetPageType="{x:Type views:NetToolsPage}" />
+                <ui:NavigationViewItem Content="系统设置" Icon="{ui:SymbolIcon Settings24}"
+                                       TargetPageType="{x:Type views:TweaksPage}" />
+                <ui:NavigationViewItem Content="快捷启动" Icon="{ui:SymbolIcon Rocket24}"
+                                       TargetPageType="{x:Type views:LauncherPage}" />
+                <ui:NavigationViewItem Content="关于" Icon="{ui:SymbolIcon Info24}"
+                                       TargetPageType="{x:Type views:AboutPage}" />
+            </ui:NavigationView.MenuItems>
+        </ui:NavigationView>
+
+        <!-- Toast 通知区 -->
+        <ItemsControl Grid.Row="1"
+                      x:Name="ToastHost"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,24,24"
+                      IsHitTestVisible="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+    </Grid>
+</ui:FluentWindow>
