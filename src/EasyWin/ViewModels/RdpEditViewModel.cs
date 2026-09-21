@@ -9,6 +9,7 @@ public partial class RdpEditViewModel : ObservableObject
     [ObservableProperty] private string _name = "";
     [ObservableProperty] private string _server = "";
     [ObservableProperty] private string _userName = "";
+    [ObservableProperty] private string _mac = "";
     [ObservableProperty] private bool _rememberPassword;
     [ObservableProperty] private bool _fullScreen = true;
     [ObservableProperty] private string _widthText = "1280";
@@ -28,6 +29,7 @@ public partial class RdpEditViewModel : ObservableObject
         Name = profile.Name,
         Server = profile.Server,
         UserName = profile.UserName,
+        Mac = profile.Mac,
         RememberPassword = profile.RememberPassword,
         FullScreen = profile.FullScreen,
         WidthText = profile.Width.ToString(),
@@ -41,6 +43,7 @@ public partial class RdpEditViewModel : ObservableObject
         profile.Name = Name.Trim();
         profile.Server = Server.Trim();
         profile.UserName = UserName.Trim();
+        profile.Mac = Mac.Trim();
         profile.RememberPassword = RememberPassword;
         profile.FullScreen = FullScreen;
         _ = int.TryParse(WidthText, out var w);

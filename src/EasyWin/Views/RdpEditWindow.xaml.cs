@@ -106,6 +106,11 @@ public partial class RdpEditWindow : FluentWindow
             await Ui.AlertAsync("地址无效", "服务器地址不能包含空格。");
             return;
         }
+        if (!string.IsNullOrWhiteSpace(vm.Mac) && !WolService.TryNormalizeMac(vm.Mac, out _, out _))
+        {
+            await Ui.AlertAsync("MAC 地址无效", "MAC 应为 12 位十六进制字符,可用 - : 或空格分隔。");
+            return;
+        }
         if ((vm.RememberPassword || !string.IsNullOrEmpty(vm.Password)) &&
             string.IsNullOrWhiteSpace(vm.UserName))
         {

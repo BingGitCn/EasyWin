@@ -83,6 +83,13 @@ public partial class MainWindow : FluentWindow
         // 跟随系统模式时监听 Windows 深浅色切换,实时换肤
         if (Services.SettingsStore.Mode == Services.ThemeMode.System)
             Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this);
+
+        // 开机自启(--tray)时不弹主窗口,直接常驻托盘
+        if (Environment.GetCommandLineArgs().Any(a => a.Equals("--tray", StringComparison.OrdinalIgnoreCase)))
+        {
+            Hide();
+            _tray?.ShowMinimizedHint();
+        }
     }
 
     /// <summary>页面切入过渡:淡入 + 轻微上移,让导航切换不生硬。</summary>

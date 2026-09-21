@@ -77,7 +77,8 @@ public static class LanScanner
         return set.ToList();
     }
 
-    private static async Task<bool> IsPortOpenAsync(string ip, int port, int timeoutMs)
+    /// <summary>探测 TCP 端口是否开放(唤醒等待、连通性检查用)。</summary>
+    public static async Task<bool> IsPortOpenAsync(string ip, int port, int timeoutMs)
     {
         using var client = new TcpClient();
         try

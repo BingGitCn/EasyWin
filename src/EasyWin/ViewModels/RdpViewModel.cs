@@ -79,6 +79,7 @@ public partial class RdpViewModel : ObservableObject
             Name = profile.Name,
             Server = profile.Server,
             UserName = profile.UserName,
+            Mac = profile.Mac,
             RememberPassword = profile.RememberPassword,
             FullScreen = profile.FullScreen,
             Width = profile.Width,
@@ -177,6 +178,49 @@ public partial class RdpViewModel : ObservableObject
     private async Task ConnectAsync(RdpProfile? profile)
     {
         if (profile == null) return;
+        var (ok, message) = await Task.Run(() => RdpLauncher.LaunchAsync(profile)).ConfigureAwait(true);
+        if (ok) Toast.Success(message);
+        else Toast.Error(message);
+    }
+
+    /// <summary>网络唤醒:广播魔术包并等待设备上线,上线后自动发起远程连接。</summary>
+    [RelayCommand]
+    private async Task WakeAndConnectAsync(RdpProfile? profile)
+    {
+        if (profile == null) return;
+        if (!WolService.TryNormalizeMac(profile.Mac, out var mac, out var normalized))
+        {
+            Toast.Warning($"「{profile.Name}」未配置有效的 MAC 地址,请编辑连接填写。");
+            return;
+        }
+
+        var (host, port) = RdpLauncher.ParseServer(profile.Server);
+        Toast.Show($"正在唤醒 {normalized}…(设备上线后自动连接)", ToastType.Info);
+
+        var reachable = await Task.Run(async () =>
+        {
+            // 连发三次魔术包增强可靠性,之后每 2 秒探测一次目标端口,最长等 60 秒
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                WolService.SendMagicPacket(mac);
+                Thread.Sleep(250);
+            }
+            var deadline = DateTime.Now.AddSeconds(60);
+            while (DateTime.Now < deadline)
+            {
+                await Task.Delay(2000).ConfigureAwait(false);
+                if (await LanScanner.IsPortOpenAsync(host, port, 400).ConfigureAwait(false)) return true;
+            }
+            return false;
+        }).ConfigureAwait(true);
+
+        if (!reachable)
+        {
+            Toast.Error($"「{profile.Name}」唤醒超时:60 秒内未上线(检查目标机是否支持网络唤醒、MAC 是否正确)");
+            return;
+        }
+
+        Toast.Success($"「{profile.Name}」已上线,正在发起远程连接");
         var (ok, message) = await Task.Run(() => RdpLauncher.LaunchAsync(profile)).ConfigureAwait(true);
         if (ok) Toast.Success(message);
         else Toast.Error(message);

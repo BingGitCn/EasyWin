@@ -56,10 +56,16 @@
                                                    Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    CommandParameter="{Binding}" />
                                     </StackPanel>
-                                    <ui:Button Content="一键连接" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
-                                               HorizontalAlignment="Left"
-                                               Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                               CommandParameter="{Binding}" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:Button Content="一键连接" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
+                                                   Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <ui:Button Content="唤醒连接" Icon="{ui:SymbolIcon Power24}" Appearance="Secondary" Padding="12,6" Margin="8,0,0,0"
+                                                   ToolTip="广播网络唤醒魔术包,设备上线后自动发起连接(需在连接里填写 MAC)"
+                                                   Visibility="{Binding HasMac, Converter={StaticResource BoolToVis}}"
+                                                   Command="{Binding DataContext.WakeAndConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                    </StackPanel>
                                 </DockPanel>
 
                                 <StackPanel>
@@ -90,10 +96,19 @@
                                                 <Run Text="{Binding RememberPassword, Mode=OneWay, Converter={StaticResource BoolToRemember}}" />
                                             </TextBlock>
                                         </Border>
-                                        <Border CornerRadius="4" Padding="8,2"
+                                        <Border CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
                                                 Background="#33E2B93B"
                                                 Visibility="{Binding AdminSession, Converter={StaticResource BoolToVis}}">
                                             <TextBlock Text="管理模式" FontSize="11" Foreground="#E2B93B" />
+                                        </Border>
+                                        <Border CornerRadius="4" Padding="8,2"
+                                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                ToolTip="已配置 MAC,支持网络唤醒"
+                                                Visibility="{Binding HasMac, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                                <Run Text="MAC " />
+                                                <Run Text="{Binding Mac, Mode=OneWay}" />
+                                            </TextBlock>
                                         </Border>
                                     </StackPanel>
                                 </StackPanel>

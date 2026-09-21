@@ -78,6 +78,9 @@
             <TextBlock Text="用户名(可留空,连接时输入)" Style="{StaticResource FieldLabelText}" Margin="0,14,0,0" />
             <ui:TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="administrator" />
 
+            <TextBlock Text="网卡 MAC(可留空;填写后卡片支持一键网络唤醒)" Style="{StaticResource FieldLabelText}" Margin="0,14,0,0" />
+            <ui:TextBox Text="{Binding Mac, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="AA-BB-CC-DD-EE-FF" />
+
             <TextBlock Text="密码(配合下方记住凭据,可免密登录)" Style="{StaticResource FieldLabelText}" Margin="0,14,0,0" />
             <PasswordBox x:Name="PasswordBox" />
 

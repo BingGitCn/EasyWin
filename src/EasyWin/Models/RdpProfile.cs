@@ -15,6 +15,12 @@ public class RdpProfile
 
     public string UserName { get; set; } = "";
 
+    /// <summary>目标机网卡 MAC 地址(可选,支持 - : 空格分隔),填写后支持网络唤醒(WOL)。</summary>
+    public string Mac { get; set; } = "";
+
+    /// <summary>是否填写了 MAC(卡片据此显示「唤醒连接」按钮)。</summary>
+    public bool HasMac => !string.IsNullOrWhiteSpace(Mac);
+
     /// <summary>DPAPI 加密后的密码(Convert.ToBase64String),仅本机当前用户可解。</summary>
     public string? EncryptedPassword { get; set; }
 

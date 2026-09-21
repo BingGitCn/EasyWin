@@ -60,6 +60,23 @@ public partial class AboutViewModel : ObservableObject
         ApplicationThemeManager.Apply(SettingsStore.IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light);
     }
 
+    // ---------------- 开机自启 ----------------
+
+    [ObservableProperty] private bool _autoStartEnabled = AutoStartService.IsEnabled();
+
+    partial void OnAutoStartEnabledChanged(bool value)
+    {
+        var (ok, message) = value ? AutoStartService.Enable() : AutoStartService.Disable();
+        if (ok)
+        {
+            Toast.Success(message);
+            return;
+        }
+        Toast.Error(message);
+        _autoStartEnabled = !value; // 操作失败回退开关(直接改字段避免再次触发本方法)
+        OnPropertyChanged(nameof(AutoStartEnabled));
+    }
+
     [RelayCommand]
     private void OpenDataFolder()
     {

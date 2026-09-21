@@ -2,6 +2,7 @@ using System.Management;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using EasyWin.Models;
 
 namespace EasyWin.Services;
@@ -132,8 +133,56 @@ public class NetworkService
         await CommandRunner.RunAsync("netsh", "interface", "set", "interface",
             $"name={connectionName}", enable ? "admin=enable" : "admin=disable").ConfigureAwait(false);
 
-    /// <summary>对网卡应用一套完整配置(方案切换的核心):IP 模式 + DNS。</summary>
+    /// <summary>
+    /// 对网卡应用一套完整配置(方案切换的核心):
+    /// 先快照当前配置,应用后验证(静态配置 ping 网关,不通再看 ARP 是否解析),
+    /// 失败自动还原到切换前状态。
+    /// </summary>
     public async Task<(bool ok, string message)> ApplyProfileAsync(IpProfile profile)
+    {
+        var snapshot = CaptureSnapshot(profile.AdapterName);
+
+        var (ok, message) = await ApplyCoreAsync(profile).ConfigureAwait(false);
+        if (!ok)
+        {
+            if (snapshot != null)
+            {
+                await ApplyCoreAsync(snapshot).ConfigureAwait(false);
+                return (false, $"{message};已自动还原原配置");
+            }
+            return (false, message);
+        }
+
+        // 静态配置且指定网关时验证连通性:先 ping,网关禁 ping 时再看 ARP 是否解析到(二层可达即视为生效)
+        if (profile.Mode == IpConfigMode.Static && !string.IsNullOrWhiteSpace(profile.Gateway))
+        {
+            var gateway = profile.Gateway.Trim();
+            var reply = await PingAsync(gateway, 1500).ConfigureAwait(false);
+            var reachable = reply?.Status == System.Net.NetworkInformation.IPStatus.Success;
+            if (!reachable)
+            {
+                var arp = await CommandRunner.RunAsync("arp", "-a").ConfigureAwait(false);
+                reachable = arp.Output.Split('\n').Any(line =>
+                    line.Contains(gateway, StringComparison.OrdinalIgnoreCase)
+                    && Regex.IsMatch(line, @"[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}"));
+            }
+
+            if (!reachable)
+            {
+                if (snapshot != null)
+                {
+                    await ApplyCoreAsync(snapshot).ConfigureAwait(false);
+                    return (false, $"网关 {gateway} 不可达,已自动还原原配置(请检查方案参数)");
+                }
+                return (false, $"网关 {gateway} 不可达,请检查方案参数");
+            }
+        }
+
+        return (ok, message);
+    }
+
+    /// <summary>仅执行地址与 DNS 设置,不含验证与还原。</summary>
+    private async Task<(bool ok, string message)> ApplyCoreAsync(IpProfile profile)
     {
         CmdResult addressResult = profile.Mode == IpConfigMode.Static
             ? await SetStaticIpAsync(profile.AdapterName, profile.IpAddress, profile.SubnetMask, profile.Gateway).ConfigureAwait(false)
@@ -149,6 +198,32 @@ public class NetworkService
         return dnsResult.Ok
             ? (true, $"{profile.AdapterName} 已切换为「{profile.Name}」")
             : (false, $"IP 已生效,但 DNS 设置失败:{dnsResult.AllText}");
+    }
+
+    /// <summary>把网卡当前配置反向捕获为一份方案快照,用于切换失败时还原。</summary>
+    private IpProfile? CaptureSnapshot(string adapterName)
+    {
+        try
+        {
+            var adapter = GetAdapters().FirstOrDefault(a => a.ConnectionName == adapterName);
+            if (adapter == null) return null;
+            return new IpProfile
+            {
+                Name = "(切换前快照)",
+                AdapterName = adapterName,
+                Mode = adapter.DhcpEnabled ? IpConfigMode.Dhcp : IpConfigMode.Static,
+                IpAddress = adapter.IpAddress ?? "",
+                SubnetMask = string.IsNullOrEmpty(adapter.SubnetMask) ? "255.255.255.0" : adapter.SubnetMask!,
+                Gateway = adapter.Gateway ?? "",
+                Dns1 = adapter.DnsServers?.Split(", ").FirstOrDefault() ?? "",
+                Dns2 = adapter.DnsServers?.Split(", ").Skip(1).FirstOrDefault() ?? "",
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"快照网卡 {adapterName} 当前配置失败: {ex.Message}");
+            return null;
+        }
     }
 
     public async Task<PingReply?> PingAsync(string host, int timeoutMs = 2000)

@@ -67,6 +67,20 @@
                 </DockPanel>
             </ui:Card>
 
+            <!-- 启动 -->
+            <TextBlock Text="启动" Style="{StaticResource SectionTitleText}" />
+            <ui:Card Padding="18">
+                <DockPanel>
+                    <ui:ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding AutoStartEnabled, Mode=TwoWay}"
+                                     ToolTip="通过任务计划程序以最高权限启动,登录后直接进入托盘" />
+                    <StackPanel>
+                        <TextBlock Text="开机自启" FontSize="14" FontWeight="SemiBold" />
+                        <TextBlock Text="登录 Windows 后自动进入托盘常驻;自动化规则、电源自动切换等后台功能需要它"
+                                   Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </DockPanel>
+            </ui:Card>
+
             <!-- 数据 -->
             <TextBlock Text="数据" Style="{StaticResource SectionTitleText}" />
             <ui:Card Padding="18">

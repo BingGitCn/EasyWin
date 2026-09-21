@@ -57,7 +57,25 @@ public partial class App : Application
         // 电源计划自动切换:插电/用电池时按配置切计划
         _ = GetService<PowerPlanAutoSwitchService>();
 
+        _ = System.Threading.Tasks.Task.Run(CleanupTempFiles);
+
         base.OnStartup(e);
+    }
+
+    /// <summary>清理历史版本残留在 %TEMP%\EasyWin 的临时文件(rdp/wlan 配置等,保留 24 小时内的)。</summary>
+    private static void CleanupTempFiles()
+    {
+        try
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "EasyWin");
+            if (!Directory.Exists(dir)) return;
+            foreach (var file in Directory.GetFiles(dir))
+            {
+                if (File.GetLastWriteTime(file) < DateTime.Now.AddHours(-24))
+                    File.Delete(file);
+            }
+        }
+        catch { /* 清理失败不影响启动 */ }
     }
 
     private static void ActivateMainWindow()
@@ -103,14 +121,15 @@ public partial class App : Application
         _ when type == typeof(RdpProfileStore) => new RdpProfileStore(),
         _ when type == typeof(AutomationStore) => new AutomationStore(),
         _ when type == typeof(AutomationService) => new AutomationService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>()),
+        _ when type == typeof(ProxyStore) => new ProxyStore(),
         _ when type == typeof(PowerPlanAutoSwitchService) => new PowerPlanAutoSwitchService(),
-        _ when type == typeof(TrayService) => new TrayService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<WifiViewModel>()),
+        _ when type == typeof(TrayService) => new TrayService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<ProxyStore>(), GetService<WifiViewModel>()),
         _ when type == typeof(SystemInfoService) => new SystemInfoService(),
         _ when type == typeof(NetworkViewModel) => new NetworkViewModel(GetService<NetworkService>()),
         _ when type == typeof(ProfilesViewModel) => new ProfilesViewModel(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>(), GetService<WifiViewModel>(), GetService<AutomationService>()),
         _ when type == typeof(RdpViewModel) => new RdpViewModel(GetService<RdpProfileStore>(), GetService<NetworkService>()),
         _ when type == typeof(WifiViewModel) => new WifiViewModel(GetService<NetworkService>()),
-        _ when type == typeof(NetToolsViewModel) => new NetToolsViewModel(GetService<NetworkService>()),
+        _ when type == typeof(NetToolsViewModel) => new NetToolsViewModel(GetService<NetworkService>(), GetService<ProxyStore>()),
         _ when type == typeof(TweaksViewModel) => new TweaksViewModel(GetService<NetworkService>(), GetService<PowerPlanAutoSwitchService>()),
         _ when type == typeof(DashboardViewModel) => new DashboardViewModel(GetService<SystemInfoService>(), GetService<NetworkService>()),
         _ when type == typeof(LauncherViewModel) => new LauncherViewModel(),

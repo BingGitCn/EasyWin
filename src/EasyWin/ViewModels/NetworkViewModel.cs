@@ -59,6 +59,37 @@ public partial class NetworkViewModel : ObservableObject
 
     public IReadOnlyList<string> CommonDnsServers => CommonDns;
 
+    /// <summary>常用 DNS 预设,一键填入表单后由「应用配置」生效。</summary>
+    public sealed record DnsPreset(string Name, string Primary, string Secondary);
+
+    public static IReadOnlyList<DnsPreset> DnsPresets { get; } =
+    [
+        new DnsPreset("阿里", "223.5.5.5", "223.6.6.6"),
+        new DnsPreset("腾讯", "119.29.29.29", "119.28.28.28"),
+        new DnsPreset("114", "114.114.114.114", "114.114.115.115"),
+        new DnsPreset("360", "101.226.4.6", "218.30.118.6"),
+        new DnsPreset("谷歌", "8.8.8.8", "8.8.4.4"),
+    ];
+
+    /// <summary>把 DNS 预设填入表单(不直接生效,统一走「应用配置」确认)。</summary>
+    [RelayCommand]
+    private void ApplyDnsPreset(DnsPreset? preset)
+    {
+        if (preset == null || SelectedAdapter == null) return;
+        Dns1 = preset.Primary;
+        Dns2 = preset.Secondary;
+        Toast.Show($"已填入「{preset.Name}」DNS,点击「应用配置」生效", ToastType.Info);
+    }
+
+    /// <summary>清空 DNS 表单(应用后恢复由 DHCP 下发)。</summary>
+    [RelayCommand]
+    private void ClearDns()
+    {
+        Dns1 = "";
+        Dns2 = "";
+        Toast.Show("已清空 DNS,应用后将恢复自动获取", ToastType.Info);
+    }
+
     public event Action? AdapterStateChanged;
 
     [RelayCommand]

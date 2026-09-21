@@ -72,7 +72,6 @@ public static class WlanService
         var r = CommandRunner.Run("netsh", "wlan", "show", "networks", "mode=bssid");
         var list = new List<WlanNetwork>();
         if (!r.Ok) return list;
-        Log.Info($"wlan scan: exit={r.ExitCode} outLen={r.Output.Length} sample={Truncate(r.Output.Replace("\r", "").Replace("\n", "⏎"), 260)}");
 
         string? ssid = null, auth = null;
         var signal = 0;
@@ -102,8 +101,6 @@ public static class WlanService
                    .ThenByDescending(n => n.Signal)
                    .ToList();
     }
-
-    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
     private static void Push(List<WlanNetwork> list, string? ssid, string? auth, int signal, string? currentSsid)
     {

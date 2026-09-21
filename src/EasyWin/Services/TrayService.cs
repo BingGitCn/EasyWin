@@ -16,6 +16,7 @@ public class TrayService : IDisposable
     private readonly WinForms.ContextMenuStrip _menu;
     private readonly NetworkService _network;
     private readonly ProfileStore _profileStore;
+    private readonly ProxyStore _proxyStore;
     private readonly WifiViewModel _wifi;
 
     private bool _hintShown;
@@ -24,10 +25,11 @@ public class TrayService : IDisposable
     public event Action? OpenRequested;
     public event Action? ExitRequested;
 
-    public TrayService(NetworkService network, ProfileStore profileStore, WifiViewModel wifi)
+    public TrayService(NetworkService network, ProfileStore profileStore, ProxyStore proxyStore, WifiViewModel wifi)
     {
         _network = network;
         _profileStore = profileStore;
+        _proxyStore = proxyStore;
         _wifi = wifi;
 
         _icon = new WinForms.NotifyIcon
@@ -46,6 +48,7 @@ public class TrayService : IDisposable
         _menu.Items.Add(new WinForms.ToolStripSeparator());
         _menu.Items.Add("Wi-Fi", null, null);      // 高频操作放前面
         _menu.Items.Add("IP 方案", null, null);    // 子菜单项在每次展开时动态重建
+        _menu.Items.Add("代理", null, null);
         _menu.Items.Add(new WinForms.ToolStripSeparator());
         _menu.Items.Add("退出", null, (_, _) => ExitRequested?.Invoke());
         _menu.Opening += OnMenuOpening;
@@ -147,7 +150,52 @@ public class TrayService : IDisposable
                 RebuildProfileSubmenu(item);
             else if (item.Text == "Wi-Fi")
                 RebuildWifiSubmenu(item);
+            else if (item.Text == "代理")
+                RebuildProxySubmenu(item);
         }
+    }
+
+    /// <summary>托盘代理子菜单:列出已保存方案一键启用,附「关闭代理」。</summary>
+    private void RebuildProxySubmenu(WinForms.ToolStripMenuItem parent)
+    {
+        parent.DropDownItems.Clear();
+        var proxies = _proxyStore.Load();
+        if (proxies.Count == 0)
+        {
+            parent.DropDownItems.Add("(暂无代理方案,到「网络工具」页保存)").Enabled = false;
+            parent.DropDownItems.Add(new WinForms.ToolStripSeparator());
+        }
+        foreach (var proxy in proxies)
+        {
+            var captured = proxy;
+            var mi = parent.DropDownItems.Add($"{proxy.Name}({proxy.Server})");
+            mi.Click += (_, _) =>
+            {
+                try
+                {
+                    SysProxyService.Set(true, captured.Server, captured.Override);
+                    ShowBalloon("系统代理已切换", $"{captured.Name} → {captured.Server}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn("托盘切换代理失败: " + ex.Message);
+                }
+            };
+        }
+        parent.DropDownItems.Add(new WinForms.ToolStripSeparator());
+        var off = parent.DropDownItems.Add("关闭代理");
+        off.Click += (_, _) =>
+        {
+            try
+            {
+                SysProxyService.Set(false, "", "");
+                ShowBalloon("系统代理", "已关闭");
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("托盘关闭代理失败: " + ex.Message);
+            }
+        };
     }
 
     private void RebuildProfileSubmenu(WinForms.ToolStripMenuItem parent)

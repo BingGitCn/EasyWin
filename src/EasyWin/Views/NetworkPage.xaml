@@ -207,13 +207,40 @@
                                         PlaceholderText="114.114.114.114" />
                         </StackPanel>
 
-                        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,6,0,0">
-                            <ui:Button Content="应用配置" Icon="{ui:SymbolIcon Checkmark24}" Appearance="Primary"
+                        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:Button Content="应用配置" Icon="{ui:SymbolIcon Checkmark24}" Appearance="Primary"
                                        Padding="26,7" Command="{Binding ApplyCommand}" />
-                            <ui:Button Content="保存为方案" Icon="{ui:SymbolIcon Save24}" Appearance="Secondary" Margin="10,0,0,0"
+                                <ui:Button Content="保存为方案" Icon="{ui:SymbolIcon Save24}" Appearance="Secondary" Margin="10,0,0,0"
                                        Command="{Binding SaveAsProfileCommand}" />
-                            <TextBlock Text="切换过程中网络会短暂中断" VerticalAlignment="Center" Margin="14,0,0,0"
+                                <TextBlock Text="切换过程中网络会短暂中断" VerticalAlignment="Center" Margin="14,0,0,0"
                                        Style="{StaticResource CaptionText}" />
+                            </StackPanel>
+
+                            <!-- DNS 常用预设:一键填入,统一走「应用配置」生效 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <TextBlock Text="DNS 预设:" VerticalAlignment="Center"
+                                       Style="{StaticResource CaptionText}" Margin="0,0,8,0" />
+                                <ItemsControl ItemsSource="{Binding DnsPresets}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ui:Button Content="{Binding Name}" Appearance="Secondary" Padding="12,4"
+                                                       Margin="0,0,6,0" FontSize="12"
+                                                       ToolTip="{Binding Secondary, StringFormat=首选 {0} 之外同时填入备用 DNS}"
+                                                       Command="{Binding DataContext.ApplyDnsPresetCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                       CommandParameter="{Binding}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ui:Button Content="恢复自动获取" Appearance="Secondary" Padding="12,4" FontSize="12"
+                                       ToolTip="清空 DNS 表单,应用后由 DHCP 下发"
+                                       Command="{Binding ClearDnsCommand}" />
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </StackPanel>

@@ -51,6 +51,47 @@
                                    Style="{StaticResource CaptionText}" VerticalAlignment="Center"
                                    Visibility="{Binding AutoConfigUrl, Converter={StaticResource NotNullToVis}}" />
                     </DockPanel>
+
+                    <!-- 代理方案 -->
+                    <DockPanel Margin="0,16,0,0">
+                        <ui:Button DockPanel.Dock="Right" Content="把当前设置存为方案" Icon="{ui:SymbolIcon Add24}"
+                                   Appearance="Secondary" Padding="10,4"
+                                   Command="{Binding SaveProxyAsProfileCommand}" />
+                        <TextBlock Text="代理方案(点击卡片一键切换)" Style="{StaticResource FieldLabelText}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding ProxyProfiles}" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,8,6">
+                                    <ui:Button Content="{Binding Name}" Appearance="Secondary" Padding="12,4" FontSize="12"
+                                               ToolTip="{Binding Summary}"
+                                               Command="{Binding DataContext.ApplyProxyProfileCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}" />
+                                    <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Secondary" Padding="4,4" Margin="4,0,0,0"
+                                               ToolTip="删除该方案"
+                                               Command="{Binding DataContext.DeleteProxyProfileCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="还没有代理方案。把常用的代理地址保存下来,即可在此与托盘菜单一键切换。" Margin="0,4,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource CaptionText}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ProxyProfiles.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </ui:Card>
 
