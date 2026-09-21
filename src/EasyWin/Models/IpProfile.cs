@@ -38,9 +38,9 @@ public class IpProfile
 
     public string ModeText => Mode == IpConfigMode.Dhcp ? "DHCP 自动获取" : "静态 IP";
 
-    /// <summary>参数摘要,展示在方案卡片上。</summary>
+    /// <summary>参数摘要,展示在方案卡片上。DHCP 与静态都用四行结构,保证卡片信息块等高。</summary>
     public string Summary => Mode == IpConfigMode.Dhcp
-        ? "DHCP 自动获取 IP 与 DNS"
+        ? "IP 自动获取\n掩码 自动获取\n网关 自动获取\nDNS 自动获取"
         : $"IP {IpAddress}\n掩码 {SubnetMask}\n网关 {(string.IsNullOrWhiteSpace(Gateway) ? "无" : Gateway)}\nDNS {JoinDns()}";
 
     private string JoinDns()

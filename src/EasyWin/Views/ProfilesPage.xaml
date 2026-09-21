@@ -85,7 +85,9 @@
                                             <Run Text="{Binding AdapterName, Mode=OneWay}" FontWeight="SemiBold" />
                                         </TextBlock>
 
+                                        <!-- 固定四行高度,DHCP/静态卡片的参数块等高对齐 -->
                                         <TextBlock Text="{Binding Summary}" Margin="0,8,0,0" FontSize="12" LineHeight="18"
+                                                   Height="72"
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                 </DockPanel>
