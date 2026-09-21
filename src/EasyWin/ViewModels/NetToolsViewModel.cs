@@ -1,6 +1,7 @@
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using EasyWin.Models;
 using EasyWin.Services;
 
 namespace EasyWin.ViewModels;
@@ -84,6 +85,74 @@ public partial class NetToolsViewModel : ObservableObject
     }
 
     partial void OnProxyServerChanged(string value) => SaveProxyCommand.NotifyCanExecuteChanged();
+
+    // ---------------- 端口占用 ----------------
+
+    public System.Collections.ObjectModel.ObservableCollection<PortUsage> PortUsages { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CheckPortCommand))]
+    private string _portText = "";
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CheckPortCommand))]
+    private bool _isCheckingPort;
+
+    private bool CanCheckPort() => int.TryParse(PortText.Trim(), out var p) && p is > 0 and < 65536 && !IsCheckingPort;
+
+    [RelayCommand(CanExecute = nameof(CanCheckPort))]
+    private async Task CheckPortAsync()
+    {
+        IsCheckingPort = true;
+        try
+        {
+            var port = int.Parse(PortText.Trim());
+            var usages = await Task.Run(() => PortLookup.FindUsages(port)).ConfigureAwait(true);
+            PortUsages.Clear();
+            foreach (var u in usages) PortUsages.Add(u);
+            if (usages.Count == 0) Toast.Show($"端口 {port} 当前没有被占用", ToastType.Info);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("查询端口占用失败", ex);
+            Toast.Error("查询失败:" + ex.Message);
+        }
+        finally
+        {
+            IsCheckingPort = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task KillPortProcessAsync(PortUsage? usage)
+    {
+        if (usage == null) return;
+        if (usage.ProcessId == Environment.ProcessId)
+        {
+            Toast.Warning("不能结束 EasyWin 自己的进程。");
+            return;
+        }
+        if (!await Ui.ConfirmAsync("结束进程",
+                $"确定结束进程「{usage.ProcessName}」(PID {usage.ProcessId})吗?",
+                "它正占用端口 " + usage.Local.Split(':').Last() + "。结束进程会强制关闭该程序,未保存的数据会丢失。"))
+            return;
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                using var p = System.Diagnostics.Process.GetProcessById(usage.ProcessId);
+                p.Kill(entireProcessTree: true);
+            }).ConfigureAwait(true);
+            Toast.Success($"已结束 {usage.ProcessName}(PID {usage.ProcessId})");
+            await CheckPortAsync().ConfigureAwait(true); // 复查占用是否解除
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"结束进程 {usage.ProcessId} 失败", ex);
+            Toast.Error("结束进程失败:" + ex.Message);
+        }
+    }
 
     // ---------------- hosts ----------------
 

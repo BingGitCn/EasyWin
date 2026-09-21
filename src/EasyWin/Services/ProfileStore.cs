@@ -18,28 +18,34 @@ public class ProfileStore
 
     public string StorePath => AppPaths.ProfilesPath;
 
-    public List<IpProfile> Load()
+    public List<IpProfile> Load() => LoadFrom(StorePath);
+
+    /// <summary>主存储写入,保持临时文件 + 原子替换,避免写一半损坏。</summary>
+    public void Save(IReadOnlyList<IpProfile> profiles)
+    {
+        var json = JsonSerializer.Serialize(profiles, JsonOptions);
+        var temp = StorePath + ".tmp";
+        File.WriteAllText(temp, json, System.Text.Encoding.UTF8);
+        File.Move(temp, StorePath, overwrite: true);
+        Log.Info($"已保存 {profiles.Count} 个配置方案 → {StorePath}");
+    }
+
+    /// <summary>从任意路径读取方案(导入用),文件损坏时返回空列表。</summary>
+    public List<IpProfile> LoadFrom(string path)
     {
         try
         {
-            if (!File.Exists(StorePath)) return [];
-            var json = File.ReadAllText(StorePath);
+            if (!File.Exists(path)) return [];
+            var json = File.ReadAllText(path);
             return JsonSerializer.Deserialize<List<IpProfile>>(json, JsonOptions) ?? [];
         }
         catch (Exception ex)
         {
-            Log.Error("读取配置方案失败", ex);
+            Log.Error($"读取方案文件失败: {path}", ex);
             return [];
         }
     }
 
-    public void Save(IReadOnlyList<IpProfile> profiles)
-    {
-        var json = JsonSerializer.Serialize(profiles, JsonOptions);
-        var path = StorePath;
-        var temp = path + ".tmp";
-        File.WriteAllText(temp, json);
-        File.Move(temp, path, overwrite: true);
-        Log.Info($"已保存 {profiles.Count} 个配置方案 → {path}");
-    }
+    public void SaveTo(string path, IReadOnlyList<IpProfile> profiles) =>
+        File.WriteAllText(path, JsonSerializer.Serialize(profiles, JsonOptions), System.Text.Encoding.UTF8);
 }

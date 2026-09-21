@@ -20,6 +20,7 @@ public partial class WifiPage : Page
                 return Task.FromResult(window.Result);
             };
             await vm.RefreshAsync();
+            await vm.LoadSavedProfilesAsync();
         };
     }
 }

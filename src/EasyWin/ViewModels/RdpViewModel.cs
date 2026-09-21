@@ -88,6 +88,66 @@ public partial class RdpViewModel : ObservableObject
         await RefreshAsync().ConfigureAwait(true);
     }
 
+    // ---------------- 导入 / 导出 ----------------
+    // 注意:密码按当前用户 DPAPI 加密,导出到其他机器/用户后无法解密,导入后需重新输入。
+
+    [RelayCommand]
+    private void ExportProfiles()
+    {
+        if (Profiles.Count == 0)
+        {
+            Toast.Show("还没有连接方案可导出。", ToastType.Info);
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "导出远程桌面连接",
+            Filter = "EasyWin 连接 (*.easywin.json)|*.easywin.json|JSON 文件 (*.json)|*.json",
+            FileName = $"easywin-rdp-{DateTime.Now:yyyyMMdd}.json",
+        };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            _store.SaveTo(dialog.FileName, Profiles.ToList());
+            Toast.Success($"已导出 {Profiles.Count} 个连接 → {System.IO.Path.GetFileName(dialog.FileName)}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("导出远程桌面连接失败", ex);
+            Toast.Error("导出失败:" + ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportProfilesAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "导入远程桌面连接",
+            Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        var imported = _store.LoadFrom(dialog.FileName);
+        if (imported.Count == 0)
+        {
+            await Ui.AlertAsync("导入失败", "文件里没有可识别的连接数据。");
+            return;
+        }
+
+        var all = _store.Load();
+        int added = 0, replaced = 0;
+        foreach (var profile in imported)
+        {
+            var index = all.FindIndex(p => p.Id == profile.Id);
+            if (index >= 0) { all[index] = profile; replaced++; }
+            else { all.Add(profile); added++; }
+        }
+        _store.Save(all);
+        Toast.Success($"导入完成:新增 {added} 个,覆盖同名 {replaced} 个(跨机器导入需重新输入密码)");
+        await RefreshAsync().ConfigureAwait(true);
+    }
+
     /// <summary>一键连接:写凭据 + 生成 .rdp + 拉起 mstsc。</summary>
     [RelayCommand]
     private async Task ConnectAsync(RdpProfile? profile)

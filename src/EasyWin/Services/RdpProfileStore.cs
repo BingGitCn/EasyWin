@@ -30,6 +30,25 @@ public class RdpProfileStore
         }
     }
 
+    /// <summary>从任意路径读取连接方案(导入用),文件损坏时返回空列表。</summary>
+    public List<RdpProfile> LoadFrom(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return [];
+            return JsonSerializer.Deserialize<List<RdpProfile>>(File.ReadAllText(path), JsonOptions) ?? [];
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"读取连接方案文件失败: {path}", ex);
+            return [];
+        }
+    }
+
+    /// <summary>导出到任意路径(不含原子写,仅用于用户指定的导出文件)。</summary>
+    public void SaveTo(string path, IReadOnlyList<RdpProfile> profiles) =>
+        File.WriteAllText(path, JsonSerializer.Serialize(profiles, JsonOptions), System.Text.Encoding.UTF8);
+
     public void Save(IReadOnlyList<RdpProfile> profiles)
     {
         var json = JsonSerializer.Serialize(profiles, JsonOptions);

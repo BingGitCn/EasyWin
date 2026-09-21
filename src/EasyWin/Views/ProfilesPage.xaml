@@ -17,6 +17,10 @@
         <!-- 标题与工具栏 -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:Button Content="导入" Icon="{ui:SymbolIcon ArrowUpload24}" Appearance="Secondary" Margin="0,0,8,0"
+                           Command="{Binding ImportProfilesCommand}" />
+                <ui:Button Content="导出" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Secondary" Margin="0,0,8,0"
+                           Command="{Binding ExportProfilesCommand}" />
                 <ui:Button Content="从网卡导入" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Secondary" Margin="0,0,8,0"
                            Command="{Binding ImportFromAdapterCommand}" />
                 <ui:Button Content="新建方案" Icon="{ui:SymbolIcon Add24}" Appearance="Primary"
@@ -28,82 +32,142 @@
             </StackPanel>
         </DockPanel>
 
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
-                        <WrapPanel ItemWidth="318" ItemHeight="260" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <ui:Card Width="306" Height="248" Margin="0,0,12,12" Padding="16">
-                            <DockPanel>
-                                <!-- 操作按钮固定底部,卡片统一高度 -->
-                                <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                        <ui:Button Icon="{ui:SymbolIcon Edit24}" Appearance="Secondary" Padding="8,5" Margin="0,0,6,0"
-                                                   ToolTip="编辑"
-                                                   Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding Profiles}" HorizontalAlignment="Left">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
+                            <WrapPanel ItemWidth="318" ItemHeight="260" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ui:Card Width="306" Height="248" Margin="0,0,12,12" Padding="16">
+                                <DockPanel>
+                                    <!-- 操作按钮固定底部,卡片统一高度 -->
+                                    <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <ui:Button Icon="{ui:SymbolIcon Edit24}" Appearance="Secondary" Padding="8,5" Margin="0,0,6,0"
+                                                       ToolTip="编辑"
+                                                       Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                       CommandParameter="{Binding}" />
+                                            <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Padding="8,5"
+                                                       ToolTip="删除"
+                                                       Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                       CommandParameter="{Binding}" />
+                                        </StackPanel>
+                                        <ui:Button Content="一键应用" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
+                                                   HorizontalAlignment="Left"
+                                                   Command="{Binding DataContext.ApplyCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    CommandParameter="{Binding}" />
-                                        <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Padding="8,5"
-                                                   ToolTip="删除"
-                                                   Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                                   CommandParameter="{Binding}" />
-                                    </StackPanel>
-                                    <ui:Button Content="一键应用" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
-                                               HorizontalAlignment="Left"
-                                               Command="{Binding DataContext.ApplyCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                               CommandParameter="{Binding}" />
-                                </DockPanel>
-
-                                <StackPanel>
-                                    <DockPanel>
-                                        <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
-                                                Background="#334CC38A" VerticalAlignment="Center"
-                                                Visibility="{Binding InUse, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="使用中" FontSize="11" Foreground="#7ADFA9" />
-                                        </Border>
-                                        <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
-                                                Background="{DynamicResource ControlFillColorDefaultBrush}"
-                                                VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding ModeText}" FontSize="11"
-                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                        </Border>
-                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis" />
                                     </DockPanel>
 
-                                    <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionText}">
-                                        <Run Text="网卡:" />
-                                        <Run Text="{Binding AdapterName, Mode=OneWay}" FontWeight="SemiBold" />
-                                    </TextBlock>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
+                                                    Background="#334CC38A" VerticalAlignment="Center"
+                                                    Visibility="{Binding InUse, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="使用中" FontSize="11" Foreground="#7ADFA9" />
+                                            </Border>
+                                            <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
+                                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ModeText}" FontSize="11"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
 
-                                    <TextBlock Text="{Binding Summary}" Margin="0,8,0,0" FontSize="12" LineHeight="18"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                </StackPanel>
-                            </DockPanel>
-                        </ui:Card>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                                        <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionText}">
+                                            <Run Text="网卡:" />
+                                            <Run Text="{Binding AdapterName, Mode=OneWay}" FontWeight="SemiBold" />
+                                        </TextBlock>
 
-        <!-- 空态 -->
-        <TextBlock Grid.Row="1"
-                   Text="还没有配置方案,点击右上角「新建方案」或「从网卡导入」开始"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
-                            <Setter Property="Visibility" Value="Visible" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
+                                        <TextBlock Text="{Binding Summary}" Margin="0,8,0,0" FontSize="12" LineHeight="18"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </ui:Card>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 空态 -->
+                <TextBlock
+                    Text="还没有配置方案,点击右上角「新建方案」或「从网卡导入」开始"
+                    HorizontalAlignment="Center" Margin="0,80,0,0"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- 自动化规则 -->
+                <DockPanel Margin="0,20,0,10">
+                    <ui:Button DockPanel.Dock="Right" Content="新建规则" Icon="{ui:SymbolIcon Add24}" Appearance="Secondary"
+                               Command="{Binding NewRuleCommand}" />
+                    <StackPanel>
+                        <TextBlock Text="自动化规则" Style="{StaticResource SectionTitleText}" Margin="0" />
+                        <TextBlock Text="连接到指定 Wi-Fi 时自动应用对应方案(需 EasyWin 常驻托盘)"
+                                   Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
+                    </StackPanel>
+                </DockPanel>
+
+                <ItemsControl ItemsSource="{Binding Rules}" HorizontalAlignment="Left" MinWidth="560">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="8" Padding="16,10" Margin="0,0,0,8"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="#22FFFFFF" BorderThickness="1">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:ToggleSwitch IsChecked="{Binding Enabled, Mode=TwoWay}" Margin="0,0,12,0"
+                                                         Click="OnRuleToggled" ToolTip="启用/停用规则" />
+                                        <ui:Button Icon="{ui:SymbolIcon Edit24}" Appearance="Secondary" Padding="8,5" Margin="0,0,6,0"
+                                                   ToolTip="编辑规则"
+                                                   Command="{Binding DataContext.EditRuleCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Padding="8,5"
+                                                   ToolTip="删除规则"
+                                                   Command="{Binding DataContext.DeleteRuleCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayText}" FontSize="13" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock
+                    Text="还没有自动化规则,点击「新建规则」实现连上指定 Wi-Fi 自动切换网络配置"
+                    HorizontalAlignment="Left" Margin="4,2,0,8"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Rules.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- 忙碌遮罩 -->
         <Border Grid.RowSpan="2" Background="{DynamicResource ApplicationBackgroundBrush}"

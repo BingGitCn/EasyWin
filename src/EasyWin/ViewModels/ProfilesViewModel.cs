@@ -8,19 +8,25 @@ using EasyWin.Views;
 
 namespace EasyWin.ViewModels;
 
-/// <summary>配置方案页:方案列表、新建/编辑/删除、一键应用。</summary>
+/// <summary>配置方案页:方案列表、新建/编辑/删除、一键应用、自动化规则、导入导出。</summary>
 public partial class ProfilesViewModel : ObservableObject
 {
     private readonly NetworkService _network;
     private readonly ProfileStore _store;
+    private readonly AutomationStore _rules;
+    private readonly WifiViewModel _wifi;
 
-    public ProfilesViewModel(NetworkService network, ProfileStore store)
+    public ProfilesViewModel(NetworkService network, ProfileStore store, AutomationStore rules, WifiViewModel wifi)
     {
         _network = network;
         _store = store;
+        _rules = rules;
+        _wifi = wifi;
     }
 
     public ObservableCollection<IpProfile> Profiles { get; } = [];
+
+    public ObservableCollection<AutomationRule> Rules { get; } = [];
 
     [ObservableProperty]
     private bool _isBusy;
@@ -38,6 +44,21 @@ public partial class ProfilesViewModel : ObservableObject
         {
             profile.InUse = byName.TryGetValue(profile.AdapterName, out var adapter) && MatchesAdapter(profile, adapter);
             Profiles.Add(profile);
+        }
+
+        await RefreshRulesAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>加载自动化规则并解析展示用的方案名。</summary>
+    private async Task RefreshRulesAsync()
+    {
+        var rules = await Task.Run(() => _rules.Load()).ConfigureAwait(true);
+        var profileNames = Profiles.ToDictionary(p => p.Id, p => p.Name);
+        Rules.Clear();
+        foreach (var rule in rules)
+        {
+            rule.ProfileName = profileNames.GetValueOrDefault(rule.ProfileId, "");
+            Rules.Add(rule);
         }
     }
 
@@ -197,5 +218,136 @@ public partial class ProfilesViewModel : ObservableObject
         var ok = window.ShowDialog() == true;
         saved = window.Result ?? profile;
         return ok;
+    }
+
+    // ---------------- 导入 / 导出 ----------------
+
+    [RelayCommand]
+    private void ExportProfiles()
+    {
+        if (Profiles.Count == 0)
+        {
+            Toast.Show("还没有方案可导出。", ToastType.Info);
+            return;
+        }
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "导出 IP 方案",
+            Filter = "EasyWin 方案 (*.easywin.json)|*.easywin.json|JSON 文件 (*.json)|*.json",
+            FileName = $"easywin-ipprofiles-{DateTime.Now:yyyyMMdd}.json",
+        };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            _store.SaveTo(dialog.FileName, Profiles.ToList());
+            Toast.Success($"已导出 {Profiles.Count} 个方案 → {System.IO.Path.GetFileName(dialog.FileName)}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("导出 IP 方案失败", ex);
+            Toast.Error("导出失败:" + ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportProfilesAsync()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "导入 IP 方案",
+            Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        var imported = _store.LoadFrom(dialog.FileName);
+        if (imported.Count == 0)
+        {
+            await Ui.AlertAsync("导入失败", "文件里没有可识别的方案数据。");
+            return;
+        }
+
+        var all = _store.Load();
+        int added = 0, replaced = 0;
+        foreach (var profile in imported)
+        {
+            var index = all.FindIndex(p => p.Id == profile.Id);
+            if (index >= 0) { all[index] = profile; replaced++; }
+            else { all.Add(profile); added++; }
+        }
+        _store.Save(all);
+        Toast.Success($"导入完成:新增 {added} 个,覆盖同名 {replaced} 个");
+        await RefreshAsync().ConfigureAwait(true);
+    }
+
+    // ---------------- 自动化规则 ----------------
+
+    /// <summary>开关切换后持久化(由视图层的 Toggle 事件调用)。</summary>
+    public void PersistRule(AutomationRule? rule)
+    {
+        if (rule == null) return;
+        var all = _rules.Load();
+        var index = all.FindIndex(r => r.Id == rule.Id);
+        if (index >= 0) all[index] = rule; else all.Add(rule);
+        _rules.Save(all);
+        Toast.Show(rule.Enabled ? $"规则已启用:{rule.Ssid}" : $"规则已停用:{rule.Ssid}", ToastType.Info);
+    }
+
+    [RelayCommand]
+    private async Task NewRuleAsync()
+    {
+        var rule = new AutomationRule();
+        if (await EditRuleCoreAsync(rule))
+        {
+            _rules.Save([.. _rules.Load(), rule]);
+            Toast.Success($"自动化规则已创建:{rule.Ssid}");
+            await RefreshRulesAsync().ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task EditRuleAsync(AutomationRule? rule)
+    {
+        if (rule != null && await EditRuleCoreAsync(rule))
+        {
+            PersistRuleSilently(rule);
+            await RefreshRulesAsync().ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteRuleAsync(AutomationRule? rule)
+    {
+        if (rule == null) return;
+        if (!await Ui.ConfirmAsync("删除规则", $"确定删除规则「连接 {rule.Ssid}」吗?", "此操作不可恢复。")) return;
+        var all = _rules.Load();
+        all.RemoveAll(r => r.Id == rule.Id);
+        _rules.Save(all);
+        Toast.Success("规则已删除");
+        await RefreshRulesAsync().ConfigureAwait(true);
+    }
+
+    private async Task<bool> EditRuleCoreAsync(AutomationRule rule)
+    {
+        // SSID 候选 = 本机已保存的配置文件 + 最近扫描到的网络
+        var saved = await Task.Run(WlanService.ListSavedProfiles).ConfigureAwait(true);
+        var candidates = saved
+            .Concat(_wifi.Networks.Select(n => n.Ssid))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s, StringComparer.CurrentCulture)
+            .ToList();
+
+        var window = new AutomationEditWindow(rule, Profiles.ToList(), candidates)
+        {
+            Owner = Application.Current.MainWindow
+        };
+        return window.ShowDialog() == true;
+    }
+
+    private void PersistRuleSilently(AutomationRule rule)
+    {
+        var all = _rules.Load();
+        var index = all.FindIndex(r => r.Id == rule.Id);
+        if (index >= 0) all[index] = rule; else all.Add(rule);
+        _rules.Save(all);
     }
 }

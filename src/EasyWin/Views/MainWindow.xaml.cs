@@ -15,38 +15,57 @@ public partial class MainWindow : FluentWindow
 
     private bool _exitConfirmed;
     private bool _systemShutdown;
-    private bool _exitDialogOpen;
+    private TrayService? _tray;
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += OnLoaded;
         Toast.ShowRequested += OnToastRequested;
-        Closed += (_, _) => Toast.ShowRequested -= OnToastRequested;
+        Closed += OnClosed;
 
-        // Windows 注销/关机时不弹确认,直接放行
+        // Windows 注销/关机时不做拦截,直接放行
         Application.Current.SessionEnding += (_, _) => _systemShutdown = true;
+
+        // 托盘:双击/左键打开窗口,右键菜单快捷切换,退出走托盘菜单
+        _tray = App.GetService<TrayService>();
+        _tray.OpenRequested += ShowFromTray;
+        _tray.ExitRequested += ExitFromTray;
     }
 
-    /// <summary>点关闭按钮时先弹确认框,防止误触退出。</summary>
-    protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
+    /// <summary>点关闭按钮 = 隐藏到托盘(规则与托盘快捷切换需要后台常驻);真正退出走托盘菜单。</summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        if (_exitConfirmed || _systemShutdown || _exitDialogOpen)
+        if (_exitConfirmed || _systemShutdown)
             return; // 放行
 
         e.Cancel = true;
-        _exitDialogOpen = true;
-        try
+        Hide();
+        _tray?.ShowMinimizedHint();
+    }
+
+    private void ShowFromTray()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void ExitFromTray()
+    {
+        _exitConfirmed = true;
+        Close();
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        Toast.ShowRequested -= OnToastRequested;
+        if (_tray != null)
         {
-            if (await Ui.ConfirmAsync("退出 EasyWin", "确定要退出 EasyWin 吗?", "网卡配置与系统设置将保持当前状态。", "退出", "继续使用"))
-            {
-                _exitConfirmed = true;
-                Environment.Exit(0);
-            }
-        }
-        finally
-        {
-            _exitDialogOpen = false;
+            _tray.OpenRequested -= ShowFromTray;
+            _tray.ExitRequested -= ExitFromTray;
+            _tray.Dispose();
+            _tray = null;
         }
     }
 

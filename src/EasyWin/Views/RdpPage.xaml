@@ -16,8 +16,14 @@
 
         <!-- 标题与工具栏 -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
-            <ui:Button DockPanel.Dock="Right" Content="新建连接" Icon="{ui:SymbolIcon Add24}" Appearance="Primary"
-                       Command="{Binding NewCommand}" VerticalAlignment="Center" />
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:Button Content="导入" Icon="{ui:SymbolIcon ArrowUpload24}" Appearance="Secondary" Margin="0,0,8,0"
+                           Command="{Binding ImportProfilesCommand}" />
+                <ui:Button Content="导出" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Secondary" Margin="0,0,8,0"
+                           Command="{Binding ExportProfilesCommand}" />
+                <ui:Button Content="新建连接" Icon="{ui:SymbolIcon Add24}" Appearance="Primary"
+                           Command="{Binding NewCommand}" />
+            </StackPanel>
             <StackPanel>
                 <TextBlock Text="远程桌面" Style="{StaticResource PageTitleText}" />
                 <TextBlock Text="保存 mstsc 连接配置,一键发起远程控制" Style="{StaticResource CaptionText}" Margin="0,4,0,0" />

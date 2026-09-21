@@ -76,6 +76,54 @@
                 </StackPanel>
             </ui:Card>
 
+            <!-- 端口占用 -->
+            <TextBlock Text="端口占用" Style="{StaticResource SectionTitleText}" />
+            <ui:Card Padding="18">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,10,0"
+                                             Visibility="{Binding IsCheckingPort, Converter={StaticResource BoolToVis}}" />
+                            <ui:Button Content="查询" Icon="{ui:SymbolIcon Search24}" Appearance="Primary"
+                                       Command="{Binding CheckPortCommand}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="端口号" Style="{StaticResource FieldLabelText}" />
+                            <ui:TextBox Width="200" HorizontalAlignment="Left"
+                                        Text="{Binding PortText, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="例如 8080" MaxLength="5" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <ItemsControl ItemsSource="{Binding PortUsages}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="6" Padding="12,8" Margin="0,0,0,6"
+                                        Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                    <DockPanel>
+                                        <ui:Button DockPanel.Dock="Right" Content="结束进程" Icon="{ui:SymbolIcon Dismiss24}"
+                                                   Appearance="Danger" Padding="8,4" VerticalAlignment="Center"
+                                                   Command="{Binding DataContext.KillPortProcessCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Summary}" FontSize="13" FontFamily="Consolas" />
+                                            <TextBlock Style="{StaticResource CaptionText}" Margin="0,2,0,0">
+                                                <Run Text="{Binding ProcessName, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Run Text="{Binding ProcessId, Mode=OneWay, StringFormat='PID {0}'}" />
+                                                <Run Text="{Binding ProcessPath, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="输入端口号点「查询」,列出该端口被哪个进程占用;空闲则无结果"
+                               Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
+                </StackPanel>
+            </ui:Card>
+
             <!-- DNS 维护 -->
             <TextBlock Text="DNS 与网络修复" Style="{StaticResource SectionTitleText}" />
             <ui:Card Padding="18">

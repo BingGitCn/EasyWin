@@ -27,6 +27,9 @@ public partial class WifiViewModel : ObservableObject
     [ObservableProperty] private string _currentWifiText = "";
     [ObservableProperty] private bool _isWifiScanning;
 
+    /// <summary>最近一次成功扫描时间,托盘菜单等据此决定是否需要补扫。</summary>
+    public DateTime LastScanAt { get; private set; } = DateTime.MinValue;
+
     [RelayCommand]
     public async Task RefreshAsync()
     {
@@ -65,6 +68,7 @@ public partial class WifiViewModel : ObservableObject
                 Networks.Clear();
                 foreach (var n in networks) Networks.Add(n);
                 CurrentWifiText = current == null ? "未连接 Wi-Fi" : $"当前 Wi-Fi:{current}";
+                LastScanAt = DateTime.Now;
             }
         }
         catch (Exception ex)
@@ -75,6 +79,74 @@ public partial class WifiViewModel : ObservableObject
         finally
         {
             IsWifiScanning = false;
+        }
+    }
+
+    // ---------------- 已保存的 Wi-Fi 密码 ----------------
+
+    public ObservableCollection<string> SavedProfiles { get; } = [];
+
+    [ObservableProperty] private string? _selectedSavedProfile;
+    [ObservableProperty] private string _savedPasswordText = "";
+
+    /// <summary>最近一次读取到的明文密码,复制用。</summary>
+    private string? _savedPasswordRaw;
+
+    /// <summary>页面加载时调用:列出本机已保存的 Wi-Fi 配置文件。</summary>
+    public async Task LoadSavedProfilesAsync()
+    {
+        try
+        {
+            var profiles = await Task.Run(WlanService.ListSavedProfiles).ConfigureAwait(true);
+            SavedProfiles.Clear();
+            foreach (var p in profiles) SavedProfiles.Add(p);
+            SelectedSavedProfile = SavedProfiles.FirstOrDefault();
+            SavedPasswordText = "";
+            _savedPasswordRaw = null;
+        }
+        catch (Exception ex)
+        {
+            Log.Error("读取已保存 Wi-Fi 列表失败", ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowSavedPasswordAsync()
+    {
+        if (SelectedSavedProfile == null)
+        {
+            await Ui.AlertAsync("未选择网络", "请先在下拉框选择一个已保存的 Wi-Fi。");
+            return;
+        }
+        var name = SelectedSavedProfile;
+        var password = await Task.Run(() => WlanService.GetSavedPassword(name)).ConfigureAwait(true);
+        _savedPasswordRaw = password;
+        SavedPasswordText = password switch
+        {
+            null => $"读取「{name}」的密码失败(配置文件可能刚被删除)。",
+            "" => $"「{name}」是开放网络,没有密码。",
+            _ => password,
+        };
+        if (password is { Length: > 0 })
+            Toast.Show("密码已显示,注意不要泄露给不相关的人", ToastType.Info);
+    }
+
+    [RelayCommand]
+    private void CopySavedPassword()
+    {
+        if (string.IsNullOrEmpty(_savedPasswordRaw))
+        {
+            Toast.Warning("还没有可复制的密码,请先「查看密码」。");
+            return;
+        }
+        try
+        {
+            Clipboard.SetText(_savedPasswordRaw);
+            Toast.Success("密码已复制到剪贴板");
+        }
+        catch (Exception ex)
+        {
+            Toast.Error("复制失败:" + ex.Message);
         }
     }
 

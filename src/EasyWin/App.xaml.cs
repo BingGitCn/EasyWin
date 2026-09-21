@@ -14,6 +14,7 @@ namespace EasyWin;
 public partial class App : Application
 {
     private static Mutex? _mutex;
+    private static EventWaitHandle? _activateEvent;
 
     private readonly Dictionary<Type, object> _services = [];
 
@@ -24,14 +25,22 @@ public partial class App : Application
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
 
-        // 单实例
+        // 单实例;二次启动时唤起已运行实例的窗口(窗口可能最小化到了托盘)
         _mutex = new Mutex(true, "EasyWin_SingleInstance_9F3A2C", out var createdNew);
+        _activateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "EasyWin_Activate_9F3A2C", out _);
         if (!createdNew)
         {
-            await Ui.AlertAsync("EasyWin", "EasyWin 已经在运行中。");
+            _activateEvent.Set();
             Shutdown();
             return;
         }
+        var listener = new Thread(() =>
+        {
+            while (_activateEvent!.WaitOne())
+                Current?.Dispatcher.Invoke(ActivateMainWindow);
+        })
+        { IsBackground = true };
+        listener.Start();
 
         // 主题:--theme=light|dark,默认记住上次选择,首次为深色(注意 SettingsStore.Theme 的语义是 true=深色)
         var themeArg = e.Args.FirstOrDefault(a => a.StartsWith("--theme=", StringComparison.OrdinalIgnoreCase));
@@ -42,7 +51,19 @@ public partial class App : Application
             isDark ? Wpf.Ui.Appearance.ApplicationTheme.Dark : Wpf.Ui.Appearance.ApplicationTheme.Light);
         Log.Info($"主题应用: arg={themeArg ?? "(无)"} -> {Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()}");
 
+        // 场景自动化:订阅网络变化,常驻后台时规则才能生效
+        _ = GetService<AutomationService>();
+
         base.OnStartup(e);
+    }
+
+    private static void ActivateMainWindow()
+    {
+        var window = Current.MainWindow;
+        if (window == null) return;
+        window.Show();
+        window.WindowState = WindowState.Normal;
+        window.Activate();
     }
 
     private async void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -77,9 +98,12 @@ public partial class App : Application
         _ when type == typeof(NetworkService) => new NetworkService(),
         _ when type == typeof(ProfileStore) => new ProfileStore(),
         _ when type == typeof(RdpProfileStore) => new RdpProfileStore(),
+        _ when type == typeof(AutomationStore) => new AutomationStore(),
+        _ when type == typeof(AutomationService) => new AutomationService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>()),
+        _ when type == typeof(TrayService) => new TrayService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<WifiViewModel>()),
         _ when type == typeof(SystemInfoService) => new SystemInfoService(),
         _ when type == typeof(NetworkViewModel) => new NetworkViewModel(GetService<NetworkService>()),
-        _ when type == typeof(ProfilesViewModel) => new ProfilesViewModel(GetService<NetworkService>(), GetService<ProfileStore>()),
+        _ when type == typeof(ProfilesViewModel) => new ProfilesViewModel(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>(), GetService<WifiViewModel>()),
         _ when type == typeof(RdpViewModel) => new RdpViewModel(GetService<RdpProfileStore>(), GetService<NetworkService>()),
         _ when type == typeof(WifiViewModel) => new WifiViewModel(GetService<NetworkService>()),
         _ when type == typeof(NetToolsViewModel) => new NetToolsViewModel(GetService<NetworkService>()),

@@ -22,6 +22,35 @@ public static class WlanService
         return r.Ok && !r.Output.Contains("没有运行 WLAN 服务", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>列出本机已保存的 Wi-Fi 配置文件名(中英文系统输出均可解析)。</summary>
+    public static List<string> ListSavedProfiles()
+    {
+        var r = CommandRunner.Run("netsh", "wlan", "show", "profiles");
+        var list = new List<string>();
+        if (!r.Ok) return list;
+        foreach (var line in r.Output.Split('\n'))
+        {
+            // "所有用户配置文件 : MyWifi" / "All User Profile : MyWifi"
+            var m = Regex.Match(line, @"^\s*(?:所有用户配置文件|All User Profile)\s*:\s*(.+?)\s*$");
+            if (m.Success) list.Add(m.Groups[1].Value);
+        }
+        return list;
+    }
+
+    /// <summary>读取已保存配置文件的明文密码:开放网络返回空串,配置不存在/读取失败返回 null。</summary>
+    public static string? GetSavedPassword(string ssid)
+    {
+        var r = CommandRunner.Run("netsh", "wlan", "show", "profile", $"name={ssid}", "key=clear");
+        if (!r.Ok) return null;
+        foreach (var line in r.Output.Split('\n'))
+        {
+            // "关键内容 : password" / "Key Content : password"
+            var m = Regex.Match(line, @"^\s*(?:关键内容|Key Content)\s*:\s*(.*?)\s*$");
+            if (m.Success) return m.Groups[1].Value;
+        }
+        return ""; // 配置文件存在但没有密码字段(开放网络)
+    }
+
     /// <summary>当前已连接的 SSID(未连 Wi-Fi 返回 null)。</summary>
     public static string? GetCurrentSsid()
     {

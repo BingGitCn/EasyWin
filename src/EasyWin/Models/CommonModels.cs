@@ -2,6 +2,29 @@ namespace EasyWin.Models;
 
 public record PowerPlan(string Guid, string Name, bool IsActive);
 
+/// <summary>端口占用条目(解析 netstat -ano 所得)。</summary>
+public class PortUsage
+{
+    public string Protocol { get; set; } = "TCP";
+
+    /// <summary>本地端点,如 0.0.0.0:8080 或 [::]:8080。</summary>
+    public string Local { get; set; } = "";
+
+    public string Remote { get; set; } = "";
+
+    public string State { get; set; } = "";
+
+    public int ProcessId { get; set; }
+
+    public string ProcessName { get; set; } = "";
+
+    public string ProcessPath { get; set; } = "";
+
+    public string Summary => State == "无连接状态"
+        ? $"{Protocol} {Local}"
+        : $"{Protocol} {Local} ← {Remote} ({State})";
+}
+
 public record DiskInfo(string Drive, string Label, long TotalBytes, long FreeBytes, bool IsRemovable = false)
 {
     public string TotalText => Format(TotalBytes);

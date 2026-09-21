@@ -30,52 +30,81 @@
         </DockPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Networks}" VerticalAlignment="Top">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Width="560" HorizontalContentAlignment="Stretch" Cursor="Hand" Margin="0,0,0,8"
-                                Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
-                                CommandParameter="{Binding}">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border x:Name="RowBg" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                            BorderBrush="#22FFFFFF" BorderThickness="1" CornerRadius="8" Padding="16,12">
-                                        <ContentPresenter />
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding Networks}" HorizontalAlignment="Left">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Width="560" HorizontalContentAlignment="Stretch" Cursor="Hand" Margin="0,0,0,8"
+                                    Command="{Binding DataContext.ConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                    CommandParameter="{Binding}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="RowBg" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                                BorderBrush="#22FFFFFF" BorderThickness="1" CornerRadius="8" Padding="16,12">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="RowBg" Property="Background" Value="#26FFFFFF" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:SymbolIcon Symbol="{Binding SignalSymbol}" FontSize="18"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Ssid}" FontSize="14" FontWeight="SemiBold"
+                                               Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Auth}" FontSize="11" Margin="12,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding SignalText}" FontSize="13" Margin="14,0,0,0"
+                                               VerticalAlignment="Center" FontWeight="SemiBold" />
+                                    <Border Grid.Column="4" CornerRadius="4" Padding="8,2" Margin="12,0,0,0"
+                                            Background="#334CC38A" VerticalAlignment="Center"
+                                            Visibility="{Binding Connected, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="已连接" FontSize="11" Foreground="#7ADFA9" />
                                     </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="RowBg" Property="Background" Value="#26FFFFFF" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Button.Template>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ui:SymbolIcon Symbol="{Binding SignalSymbol}" FontSize="18"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="{Binding Ssid}" FontSize="14" FontWeight="SemiBold"
-                                           Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Grid.Column="2" Text="{Binding Auth}" FontSize="11" Margin="12,0,0,0"
-                                           VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                <TextBlock Grid.Column="3" Text="{Binding SignalText}" FontSize="13" Margin="14,0,0,0"
-                                           VerticalAlignment="Center" FontWeight="SemiBold" />
-                                <Border Grid.Column="4" CornerRadius="4" Padding="8,2" Margin="12,0,0,0"
-                                        Background="#334CC38A" VerticalAlignment="Center"
-                                        Visibility="{Binding Connected, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="已连接" FontSize="11" Foreground="#7ADFA9" />
-                                </Border>
-                            </Grid>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 已保存的 Wi-Fi 密码 -->
+                <TextBlock Text="已保存的 Wi-Fi 密码" Style="{StaticResource SectionTitleText}" Margin="0,16,0,10" />
+                <ui:Card Width="592" HorizontalAlignment="Left" Padding="18" Margin="0,0,0,24">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <ui:Button Content="查看密码" Icon="{ui:SymbolIcon Eye24}" Appearance="Primary" Margin="0,0,8,0"
+                                           Command="{Binding ShowSavedPasswordCommand}" />
+                                <ui:Button Content="复制" Icon="{ui:SymbolIcon Copy24}" Appearance="Secondary"
+                                           Command="{Binding CopySavedPasswordCommand}" />
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="本机保存过密码的网络" Style="{StaticResource FieldLabelText}" />
+                                <ComboBox Width="280" HorizontalAlignment="Left"
+                                          ItemsSource="{Binding SavedProfiles}"
+                                          SelectedItem="{Binding SelectedSavedProfile, Mode=TwoWay}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock Text="{Binding SavedPasswordText}"
+                                   FontFamily="Consolas" FontSize="15" FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Visibility="{Binding SavedPasswordText, Converter={StaticResource NotNullToVis}}" />
+                        <TextBlock Text="查看的是 Windows 本机存储的明文密码,注意保密;开放网络无密码"
+                                   Style="{StaticResource CaptionText}" Margin="0,6,0,0" />
+                    </StackPanel>
+                </ui:Card>
+            </StackPanel>
         </ScrollViewer>
 
         <!-- 空态:有 WLAN 且列表为空时显示 -->
