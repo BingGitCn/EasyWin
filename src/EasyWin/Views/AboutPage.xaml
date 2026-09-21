@@ -32,6 +32,14 @@
                             <TextBlock Text="网卡切换 + 系统设置 · WPF / .NET 8 / WPF-UI"
                                        Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
                         </StackPanel>
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionText}">
+                            <Run Text="仓库:" />
+                            <Hyperlink NavigateUri="https://github.com/BingGitCn/EasyWin"
+                                       RequestNavigate="OnRepoNavigate" Foreground="#5BA8E2"
+                                       TextDecorations="Underline">
+                                <Run Text="github.com/BingGitCn/EasyWin" />
+                            </Hyperlink>
+                        </TextBlock>
                     </StackPanel>
                 </StackPanel>
             </ui:Card>
