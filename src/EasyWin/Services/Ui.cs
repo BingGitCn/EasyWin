@@ -61,6 +61,8 @@ public static class Ui
         {
             Title = title,
             Content = content,
+            // 独立弹窗不在主窗口视觉树内,需要显式套用品牌字体
+            FontFamily = Application.Current?.TryFindResource("AppFont") as System.Windows.Media.FontFamily,
             PrimaryButtonText = primaryText,
             PrimaryButtonAppearance = appearance,
             PrimaryButtonIcon = new SymbolIcon { Symbol = (SymbolRegular)Enum.Parse(typeof(SymbolRegular), primaryIcon) },

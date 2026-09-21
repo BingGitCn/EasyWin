@@ -142,6 +142,9 @@ public partial class App : Application
         if (_pageFactories.TryGetValue(pageType, out var factory))
         {
             var page = factory();
+            // NavigationView 宿主存在内容边界,Page 不继承窗口 FontFamily,必须显式套用品牌字体
+            if (Current?.TryFindResource("AppFont") is System.Windows.Media.FontFamily font)
+                page.FontFamily = font;
             _pageCache[pageType] = page;
             return page;
         }

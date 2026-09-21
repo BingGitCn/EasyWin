@@ -13,6 +13,9 @@
 
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
+            <!-- 品牌正文字体:霞鹜新致宋 屏幕阅读版(内嵌 Assets/Fonts,与 VPXDeep 一致),回退 等线 → 雅黑 -->
+            <FontFamily x:Key="AppFont">pack://application:,,,/Assets/Fonts/LXGWNeoZhiSongScreenFull.ttf#霞鹜新致宋 屏幕阅读版 补全, 等线, Microsoft YaHei UI</FontFamily>
+
             <services:InverseBoolConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="InverseBool" />
             <services:NotNullToVisConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="NotNullToVis" />
             <services:BoolToRememberConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="BoolToRemember" />

@@ -9,9 +9,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EasyWin</RootNamespace>
     <AssemblyName>EasyWin</AssemblyName>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <Authors>Bing</Authors>
-    <FileVersion>1.4.0.0</FileVersion>
+    <FileVersion>1.4.1.0</FileVersion>
     <Product>EasyWin - Windows 一站式管理工具</Product>
     <Description>网卡管理与 IP 一键切换 + Windows 系统设置工具箱</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -33,6 +33,8 @@
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\app.png" />
+    <!-- 品牌正文字体:霞鹜新致宋 屏幕阅读版(OFL 开源),与 VPXDeep 保持一致 -->
+    <Resource Include="Assets\Fonts\LXGWNeoZhiSongScreenFull.ttf" />
   </ItemGroup>
 
   <ItemGroup>
