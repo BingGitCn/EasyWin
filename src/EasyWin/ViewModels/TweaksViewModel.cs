@@ -11,11 +11,11 @@ namespace EasyWin.ViewModels;
 public partial class TweakCardViewModel : ObservableObject
 {
     private readonly Func<bool> _check;
-    private readonly Func<bool, string?> _apply;
+    private readonly Func<bool, Task<string?>> _apply;
     private readonly Action _refresh;
 
     public TweakCardViewModel(string title, string description, string symbol,
-        Func<bool> check, Func<bool, string?> apply, string applyText, string restoreText, Action refresh,
+        Func<bool> check, Func<bool, Task<string?>> apply, string applyText, string restoreText, Action refresh,
         Func<Task>? promptAfterApply = null)
     {
         Title = title;
@@ -75,7 +75,6 @@ public partial class TweakCardViewModel : ObservableObject
         {
             var target = !IsApplied;
             var warning = await Task.Run(() => _apply.Invoke(target)).ConfigureAwait(true);
-
             _refresh();
             ReloadState();
             if (IsApplied == target)
@@ -113,7 +112,7 @@ public partial class TweaksViewModel : ObservableObject
             new TweakCardViewModel("禁用 Windows 自动更新",
                 "组策略 NoAutoUpdate + 禁用 wuauserv + 禁用 WaaSMedicSvc(防自动恢复)。建议定期恢复更新以获取安全补丁。",
                 "ArrowClockwise24", TweakService.IsUpdateDisabled,
-                target => TweakService.SetUpdateDisabled(target),
+                async target => await Task.Run(() => TweakService.SetUpdateDisabled(target)),
                 "禁用更新", "恢复更新",
                 () => { }),
         ];
@@ -123,13 +122,13 @@ public partial class TweaksViewModel : ObservableObject
             new TweakCardViewModel("去除快捷方式小箭头",
                 "修改 Shell Icons 注册表项,生效需重启资源管理器。",
                 "Link24", TweakService.IsShortcutArrowHidden,
-                target => { TweakService.SetShortcutArrowHidden(target); return null; },
+                async target => { TweakService.SetShortcutArrowHidden(target); return (string?)null; },
                 "去箭头", "恢复箭头",
                 () => { }, promptAfterApply: AskRestartExplorerAsync),
             new TweakCardViewModel("隐藏「快捷方式」字样",
                 "新建快捷方式时不再自动添加「- 快捷方式」后缀。",
                 "Edit24", TweakService.IsShortcutPrefixHidden,
-                target => { TweakService.SetShortcutPrefixHidden(target); return null; },
+                async target => { TweakService.SetShortcutPrefixHidden(target); return (string?)null; },
                 "隐藏字样", "恢复字样",
                 () => { }),
         ];
@@ -139,19 +138,19 @@ public partial class TweaksViewModel : ObservableObject
             new TweakCardViewModel("启用远程桌面",
                 "允许其他设备通过远程桌面连接本机(家庭版不支持作为被控端)。",
                 "Desktop24", TweakService.IsRemoteDesktopEnabled,
-                target => { TweakService.SetRemoteDesktop(target); return null; },
+                async target => { TweakService.SetRemoteDesktop(target); return (string?)null; },
                 "开启远程", "关闭远程",
                 () => { }),
             new TweakCardViewModel("视觉效果设为最佳性能",
                 "关闭窗口动画、阴影等视觉效果,低配机更流畅;重启资源管理器后完全生效。",
                 "Flash24", TweakService.IsBestPerformance,
-                target => { TweakService.SetBestPerformance(target); return null; },
+                async target => { TweakService.SetBestPerformance(target); return (string?)null; },
                 "最佳性能", "恢复默认",
                 () => { }),
             new TweakCardViewModel("开启防火墙",
                 "域/专用/公用全部配置文件的防火墙。仅建议在受信任的内网环境临时关闭,用完记得开回来!",
                 "Shield24", TweakService.IsFirewallEnabled,
-                target => { TweakService.SetFirewallAsync(target).Wait(); return null; },
+                async target => { await TweakService.SetFirewallAsync(target); return (string?)null; },
                 "开启防火墙", "关闭防火墙",
                 () => { }),
         ];
@@ -169,7 +168,7 @@ public partial class TweaksViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        var plans = await Task.Run(() => TweakService.GetPowerPlansAsync()).ConfigureAwait(true);
+        var plans = await TweakService.GetPowerPlansAsync().ConfigureAwait(true);
         PowerPlans.Clear();
         foreach (var plan in plans) PowerPlans.Add(plan);
         ActivePlan = plans.FirstOrDefault(p => p.IsActive);
@@ -185,9 +184,9 @@ public partial class TweaksViewModel : ObservableObject
         try
         {
             if (plan.Name.Contains("高性能") || string.Equals(plan.Guid, "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", StringComparison.OrdinalIgnoreCase))
-                await Task.Run(() => TweakService.ActivateHighPerformanceAsync()).ConfigureAwait(true);
+                await TweakService.ActivateHighPerformanceAsync().ConfigureAwait(true);
             else
-                await Task.Run(() => TweakService.SetPowerPlanAsync(plan.Guid)).ConfigureAwait(true);
+                await TweakService.SetPowerPlanAsync(plan.Guid).ConfigureAwait(true);
 
             await RefreshAsync().ConfigureAwait(true);
             Toast.Success($"电源计划已切换为「{plan.Name}」");

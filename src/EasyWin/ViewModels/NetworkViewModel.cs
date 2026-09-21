@@ -74,9 +74,14 @@ public partial class NetworkViewModel : ObservableObject
                           ?? Adapters.FirstOrDefault();
     }
 
+    /// <summary>当前表单已载入的网卡;刷新时同一网卡不回填,避免覆盖用户正在输入的内容。</summary>
+    private string? _formAdapterName;
+
     partial void OnSelectedAdapterChanged(NetworkAdapterInfo? value)
     {
         if (value == null) return;
+        if (value.ConnectionName == _formAdapterName) return;
+        _formAdapterName = value.ConnectionName;
         IsStaticMode = !value.DhcpEnabled;
         IpAddress = value.IpAddress ?? "";
         SubnetMask = string.IsNullOrEmpty(value.SubnetMask) ? "255.255.255.0" : value.SubnetMask;

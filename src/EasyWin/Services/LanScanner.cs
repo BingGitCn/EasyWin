@@ -84,7 +84,21 @@ public static class LanScanner
         {
             var connectTask = client.ConnectAsync(ip, port);
             var finished = await Task.WhenAny(connectTask, Task.Delay(timeoutMs)).ConfigureAwait(false);
-            return finished == connectTask && client.Connected;
+            if (finished != connectTask)
+            {
+                // 超时放弃后连接还会在后台完成/失败,挂上观察避免未观察异常
+                _ = connectTask.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+                return false;
+            }
+            try
+            {
+                await connectTask.ConfigureAwait(false);
+                return client.Connected;
+            }
+            catch
+            {
+                return false;
+            }
         }
         catch
         {

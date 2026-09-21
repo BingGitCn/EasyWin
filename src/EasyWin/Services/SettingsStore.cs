@@ -20,7 +20,8 @@ public static class SettingsStore
             {
                 if (File.Exists(Path))
                 {
-                    var json = JsonDocument.Parse(File.ReadAllText(Path)).RootElement;
+                    using var doc = JsonDocument.Parse(File.ReadAllText(Path));
+                    var json = doc.RootElement;
                     if (json.TryGetProperty("darkTheme", out var v))
                     {
                         _theme = v.GetBoolean();

@@ -69,7 +69,6 @@ public static class UsbEjectService
     }
 
     private const int CR_SUCCESS = 0;
-    private const int DN_REMOVABLE = 0x4000;
 
     [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
     private static extern int CM_Locate_DevNodeW(out int pdnDevInst, string pDeviceID, int ulFlags);

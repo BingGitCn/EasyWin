@@ -17,8 +17,9 @@ public class NetworkService
         using (var searcher = new ManagementObjectSearcher(
             "SELECT Index, InterfaceIndex, NetConnectionID, Name, Description, NetEnabled, MACAddress, AdapterType, Speed, GUID " +
             "FROM Win32_NetworkAdapter WHERE NetConnectionID IS NOT NULL"))
+        using (var results = searcher.Get())
         {
-            foreach (var o in searcher.Get())
+            foreach (var o in results)
                 wmiAdapters[(int)(uint)o["Index"]] = o;
         }
 
@@ -27,8 +28,9 @@ public class NetworkService
         using (var searcher = new ManagementObjectSearcher(
             "SELECT Index, IPAddress, IPSubnet, DefaultIPGateway, DNSServerSearchOrder, DHCPEnabled, DHCPServer, DNSDomain " +
             "FROM Win32_NetworkAdapterConfiguration"))
+        using (var results = searcher.Get())
         {
-            foreach (var o in searcher.Get())
+            foreach (var o in results)
                 configs[(int)(uint)o["Index"]] = o;
         }
 
@@ -67,7 +69,7 @@ public class NetworkService
                     info.BytesReceived = stats.BytesReceived;
                     info.BytesSent = stats.BytesSent;
                     var mtu = runtime.GetIPProperties().GetIPv4Properties()?.Mtu;
-                    info.MtuText = mtu is > 0 ? mtu.ToString() : "—";
+                    info.MtuText = mtu is > 0 ? mtu.Value.ToString() : "—";
                     info.DnsSuffix = runtime.GetIPProperties().DnsSuffix;
                 }
             }
@@ -191,11 +193,9 @@ public class NetworkService
 
     public static int PrefixFromMask(string? mask)
     {
-        if (!IsValidIPv4(mask)) return 24;
-        int prefix = 0;
-        foreach (var b in IPAddress.Parse(mask!.Trim()).GetAddressBytes())
-            prefix += BitOperationsPopCount(b);
-        return prefix;
+        // 与 Models.NetworkPrefix 同一实现;无效掩码时按最常见的 /24 兜底
+        var prefix = NetworkPrefix.PrefixFromMask(mask);
+        return prefix > 0 ? prefix : 24;
     }
 
     public static string MaskFromPrefix(int prefix)
@@ -204,13 +204,6 @@ public class NetworkService
         var bytes = BitConverter.GetBytes(value);
         Array.Reverse(bytes);
         return new IPAddress(bytes).ToString();
-    }
-
-    private static int BitOperationsPopCount(byte b)
-    {
-        int count = 0;
-        while (b != 0) { count += b & 1; b >>= 1; }
-        return count;
     }
 
     private static string? ExtractFirstV4(object? wmiArray)

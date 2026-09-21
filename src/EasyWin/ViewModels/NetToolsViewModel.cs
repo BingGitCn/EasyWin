@@ -63,8 +63,16 @@ public partial class NetToolsViewModel : ObservableObject
             return;
         }
 
-        await Task.Run(() => SysProxyService.Set(ProxyEnabled, ProxyServer.Trim(), ProxyOverride.Trim())).ConfigureAwait(true);
-        Toast.Success(ProxyEnabled ? "系统代理已开启并立即生效" : "系统代理已关闭");
+        try
+        {
+            await Task.Run(() => SysProxyService.Set(ProxyEnabled, ProxyServer.Trim(), ProxyOverride.Trim())).ConfigureAwait(true);
+            Toast.Success(ProxyEnabled ? "系统代理已开启并立即生效" : "系统代理已关闭");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("设置系统代理失败", ex);
+            Toast.Error("设置系统代理失败:" + ex.Message);
+        }
     }
 
     private static bool IsValidProxyServer(string? server)
@@ -116,8 +124,9 @@ public partial class NetToolsViewModel : ObservableObject
     [RelayCommand]
     private async Task FlushDnsAsync()
     {
-        await Task.Run(() => _ = CommandRunner.Run("ipconfig", "/flushdns")).ConfigureAwait(true);
-        Toast.Success("DNS 解析缓存已刷新");
+        var result = await Task.Run(() => CommandRunner.Run("ipconfig", "/flushdns")).ConfigureAwait(true);
+        if (result.Ok) Toast.Success("DNS 解析缓存已刷新");
+        else Toast.Error("刷新 DNS 缓存失败:" + result.AllText);
     }
 
     [RelayCommand]

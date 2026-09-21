@@ -86,7 +86,8 @@ public partial class WifiViewModel : ObservableObject
         if (network.Connected) { Toast.Show($"已连接「{network.Ssid}」", ToastType.Info); return; }
 
         string? password = null;
-        if (PromptWifiPassword != null)
+        // 开放网络无需密码,直接建配置文件连接,不再弹密码框
+        if (!WlanService.IsOpenNetwork(network.Auth) && PromptWifiPassword != null)
         {
             var (confirmed, pwd) = await PromptWifiPassword(network.Ssid, network.Auth).ConfigureAwait(true);
             if (!confirmed) return;

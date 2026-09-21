@@ -8,9 +8,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>EasyWin</RootNamespace>
     <AssemblyName>EasyWin</AssemblyName>
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
     <Authors>Bing</Authors>
-    <FileVersion>1.2.0.0</FileVersion>
+    <FileVersion>1.2.1.0</FileVersion>
     <Product>EasyWin - Windows 一站式管理工具</Product>
     <Description>网卡管理与 IP 一键切换 + Windows 系统设置工具箱</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>

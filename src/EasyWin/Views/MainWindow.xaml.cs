@@ -103,7 +103,7 @@ public partial class MainWindow : FluentWindow
                 Children =
                 {
                     new SymbolIcon { Symbol = (SymbolRegular)Enum.Parse(typeof(SymbolRegular), symbol), FontSize = 18, Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)), VerticalAlignment = VerticalAlignment.Center },
-                    new System.Windows.Controls.TextBlock { Text = message, Margin = new Thickness(10, 0, 0, 0), FontSize = 13, TextWrapping = TextWrapping.Wrap, MaxWidth = 380, VerticalAlignment = VerticalAlignment.Center },
+                    new System.Windows.Controls.TextBlock { Text = message, Margin = new Thickness(10, 0, 0, 0), FontSize = 13, TextWrapping = TextWrapping.Wrap, MaxWidth = 380, VerticalAlignment = VerticalAlignment.Center, Foreground = System.Windows.Media.Brushes.White },
                 }
             },
         };

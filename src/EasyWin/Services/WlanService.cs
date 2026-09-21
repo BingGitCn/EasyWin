@@ -83,15 +83,19 @@ public static class WlanService
             currentSsid != null && ssid.Equals(currentSsid, StringComparison.OrdinalIgnoreCase)));
     }
 
+    /// <summary>开放网络(无密码)。首次连接也需要先写入配置文件才能 netsh connect。</summary>
+    public static bool IsOpenNetwork(string auth) =>
+        auth.Contains("开放", StringComparison.OrdinalIgnoreCase) || auth.Contains("Open", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
     /// 一键切换连接。password 为 null/空时直接用已保存的配置连接;
-    /// 提供密码时会生成/覆盖该网络的配置文件再连接。
+    /// 提供密码时会生成/覆盖该网络的配置文件再连接(开放网络无需密码也会先写配置)。
     /// </summary>
     public static async Task<(bool ok, string message)> ConnectAsync(string ssid, string? password, string auth = "")
     {
-        if (!string.IsNullOrEmpty(password))
+        if (!string.IsNullOrEmpty(password) || IsOpenNetwork(auth))
         {
-            var xmlPath = await WriteProfileAsync(ssid, password, auth).ConfigureAwait(false);
+            var xmlPath = await WriteProfileAsync(ssid, password ?? "", auth).ConfigureAwait(false);
             var add = await CommandRunner.RunAsync("netsh", "wlan", "add", "profile",
                 $"filename={xmlPath}", "user=all").ConfigureAwait(false);
             try { File.Delete(xmlPath); } catch { }

@@ -89,7 +89,8 @@ public class SystemInfoService
         return disks;
     }
 
-    private static readonly Dictionary<string, bool> UsbDriveCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> UsbDriveCache =
+        new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>判断盘符是否走 USB 存储(USBSTOR/UASP),结果缓存,避免每秒重复 WMI 查询。</summary>
     private static bool IsUsbDrive(string driveName)

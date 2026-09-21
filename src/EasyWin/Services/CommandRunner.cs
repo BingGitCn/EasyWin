@@ -50,6 +50,8 @@ public static class CommandRunner
             if (finished != exitTask)
             {
                 try { process.Kill(entireProcessTree: true); } catch { /* 进程可能已退出 */ }
+                // 等输出管道收尾(可能因流已释放而失败),避免遗留未观察异常
+                try { await Task.WhenAll(outTask, errTask).ConfigureAwait(false); } catch { /* 忽略 */ }
                 return new CmdResult(-1, string.Empty, "命令执行超时");
             }
 

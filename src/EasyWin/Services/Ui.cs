@@ -51,7 +51,9 @@ public static class Ui
                 TextWrapping = TextWrapping.Wrap,
                 MaxWidth = 400,
                 Margin = new Thickness(0, 10, 0, 0),
-                Foreground = new SolidColorBrush(Color.FromArgb(0xCC, 0xE0, 0xE0, 0xE0)),
+                // 跟随主题取次要文字色,硬编码浅色会在浅色主题下不可读
+                Foreground = System.Windows.Application.Current?.TryFindResource("TextFillColorSecondaryBrush") as Brush
+                             ?? new SolidColorBrush(Color.FromRgb(0xE0, 0xE0, 0xE0)),
             });
         }
 

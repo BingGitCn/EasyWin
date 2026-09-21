@@ -35,7 +35,8 @@ public partial class RdpViewModel : ObservableObject
     private async Task NewAsync()
     {
         if (EditProfile(new RdpProfile(), out var saved))
-        {            var all = _store.Load();
+        {
+            var all = _store.Load();
             all.Add(saved);
             _store.Save(all);
             Toast.Success($"连接「{saved.Name}」已创建");

@@ -33,15 +33,14 @@ public partial class App : Application
             return;
         }
 
-        // 主题:--theme=light|dark,默认记住上次选择,首次为深色
+        // 主题:--theme=light|dark,默认记住上次选择,首次为深色(注意 SettingsStore.Theme 的语义是 true=深色)
         var themeArg = e.Args.FirstOrDefault(a => a.StartsWith("--theme=", StringComparison.OrdinalIgnoreCase));
-        var saved = SettingsStore.Theme;
-        var theme = themeArg != null
-            ? themeArg.Substring("--theme=".Length).Equals("light", StringComparison.OrdinalIgnoreCase)
-            : saved;
+        var isDark = themeArg != null
+            ? themeArg.Substring("--theme=".Length).Equals("dark", StringComparison.OrdinalIgnoreCase)
+            : SettingsStore.Theme;
         Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
-            theme ? Wpf.Ui.Appearance.ApplicationTheme.Dark : Wpf.Ui.Appearance.ApplicationTheme.Light);
-        Log.Info($"主题应用: arg={themeArg ?? "(无)"} saved={saved} -> {Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()}");
+            isDark ? Wpf.Ui.Appearance.ApplicationTheme.Dark : Wpf.Ui.Appearance.ApplicationTheme.Light);
+        Log.Info($"主题应用: arg={themeArg ?? "(无)"} -> {Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()}");
 
         base.OnStartup(e);
     }

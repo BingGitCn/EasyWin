@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using EasyWin.Models;
 
@@ -25,19 +26,14 @@ public static class RdpLauncher
         if (host.Length == 0)
             return (false, "服务器地址为空");
 
-        // 1) 预置凭据到 Windows 凭据管理器(mstsc 自动取用,免输密码)
+        // 1) 预置凭据到 Windows 凭据管理器(mstsc 自动取用,免输密码)。
+        //    走 CredWrite 而非 cmdkey,密码不经过进程命令行(命令行可被本机其他进程读取)。
         if (profile.RememberPassword)
         {
             var password = profile.GetPassword();
             var user = string.IsNullOrWhiteSpace(profile.UserName) ? Environment.UserName : profile.UserName.Trim();
-            if (!string.IsNullOrEmpty(password))
-            {
-                await CommandRunner.RunAsync("cmdkey", $"/delete:TERMSRV/{host}").ConfigureAwait(false); // 忽略不存在的情况
-                var cred = await CommandRunner.RunAsync("cmdkey",
-                    $"/generic:TERMSRV/{host}", $"/user:{user}", $"/pass:{password}").ConfigureAwait(false);
-                if (!cred.Ok)
-                    return (false, "写入凭据管理器失败:" + cred.AllText);
-            }
+            if (!string.IsNullOrEmpty(password) && !WriteCredential(host, user, password))
+                return (false, $"写入凭据管理器失败(错误码 {Marshal.GetLastWin32Error()})");
         }
 
         // 2) 生成 .rdp 文件
@@ -67,7 +63,8 @@ public static class RdpLauncher
         Directory.CreateDirectory(dir);
         var safe = string.Join("", profile.Name.Where(c => !Path.GetInvalidFileNameChars().Contains(c)));
         if (safe.Length == 0) safe = "connect";
-        var path = Path.Combine(dir, safe + ".rdp");
+        // 文件名带 Guid,避免同名方案同时发起连接时互相覆盖
+        var path = Path.Combine(dir, $"{safe}-{Guid.NewGuid():N}.rdp");
 
         var sb = new StringBuilder();
         sb.AppendLine($"screen mode id:i:{(profile.FullScreen ? 2 : 1)}");
@@ -88,4 +85,58 @@ public static class RdpLauncher
         File.WriteAllText(path, sb.ToString(), Encoding.Unicode);
         return path;
     }
+
+    // ---------- 凭据管理器(等价于 cmdkey /generic:TERMSRV/<host>) ----------
+
+    private const int CRED_TYPE_GENERIC = 1;
+    private const int CRED_PERSIST_LOCAL_MACHINE = 2;
+
+    /// <summary>同目标重复写入会整体覆盖,无需先删除。</summary>
+    private static bool WriteCredential(string host, string user, string password)
+    {
+        var blob = IntPtr.Zero;
+        try
+        {
+            var blobBytes = Encoding.Unicode.GetBytes(password);
+            blob = Marshal.AllocHGlobal(blobBytes.Length);
+            Marshal.Copy(blobBytes, 0, blob, blobBytes.Length);
+
+            var cred = new CREDENTIAL
+            {
+                Type = CRED_TYPE_GENERIC,
+                TargetName = $"TERMSRV/{host}",
+                Comment = "EasyWin",
+                CredentialBlobSize = blobBytes.Length,
+                CredentialBlob = blob,
+                Persist = CRED_PERSIST_LOCAL_MACHINE,
+                UserName = user,
+            };
+            return CredWrite(ref cred, 0);
+        }
+        finally
+        {
+            if (blob != IntPtr.Zero) Marshal.FreeHGlobal(blob);
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct CREDENTIAL
+    {
+        public int Flags;
+        public int Type;
+        public string TargetName;
+        public string Comment;
+        public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+        public int CredentialBlobSize;
+        public IntPtr CredentialBlob;
+        public int Persist;
+        public int AttributeCount;
+        public IntPtr Attributes;
+        public string TargetAlias;
+        public string UserName;
+    }
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CredWrite(ref CREDENTIAL credential, int flags);
 }
