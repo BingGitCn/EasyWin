@@ -28,9 +28,40 @@ public partial class ProfilesViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        var profiles = await Task.Run(() => _store.Load()).ConfigureAwait(true);
+        var (profiles, adapters) = await Task.Run(() => (_store.Load(), _network.GetAdapters())).ConfigureAwait(true);
+        var byName = new Dictionary<string, NetworkAdapterInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var adapter in adapters)
+            byName.TryAdd(adapter.ConnectionName, adapter);
+
         Profiles.Clear();
-        foreach (var profile in profiles.OrderBy(p => p.AdapterName).ThenBy(p => p.Name)) Profiles.Add(profile);
+        foreach (var profile in profiles.OrderBy(p => p.AdapterName).ThenBy(p => p.Name))
+        {
+            profile.InUse = byName.TryGetValue(profile.AdapterName, out var adapter) && MatchesAdapter(profile, adapter);
+            Profiles.Add(profile);
+        }
+    }
+
+    /// <summary>方案是否与网卡当前配置一致(用于"使用中"标记)。DHCP 方案只看模式;静态方案需 IP/掩码/网关/DNS 全部一致。</summary>
+    private static bool MatchesAdapter(IpProfile p, NetworkAdapterInfo a)
+    {
+        if (p.Mode == IpConfigMode.Dhcp) return a.DhcpEnabled;
+        if (a.DhcpEnabled) return false;
+
+        if (!string.Equals(p.IpAddress.Trim(), a.IpAddress?.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+        if (NetworkPrefix.PrefixFromMask(p.SubnetMask) != NetworkPrefix.PrefixFromMask(a.SubnetMask)) return false;
+
+        var gatewayEmpty = string.IsNullOrWhiteSpace(p.Gateway);
+        if (gatewayEmpty != string.IsNullOrWhiteSpace(a.Gateway)) return false;
+        if (!gatewayEmpty && !string.Equals(p.Gateway.Trim(), a.Gateway!.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+
+        return DnsMatches(p.Dns1, a.DnsServers) && DnsMatches(p.Dns2, a.DnsServers);
+    }
+
+    /// <summary>方案未指定 DNS(走 DHCP DNS)时不比对,避免 DHCP 环境下误判为不匹配。</summary>
+    private static bool DnsMatches(string? expected, string? actual)
+    {
+        if (string.IsNullOrWhiteSpace(expected)) return true;
+        return (actual ?? "").Split(',').Any(d => d.Trim().Equals(expected.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
     [RelayCommand]
@@ -137,7 +168,11 @@ public partial class ProfilesViewModel : ObservableObject
         try
         {
             var (ok, message) = await Task.Run(() => _network.ApplyProfileAsync(profile)).ConfigureAwait(true);
-            if (ok) Toast.Success(message);
+            if (ok)
+            {
+                Toast.Success(message);
+                await Task.Delay(1500).ConfigureAwait(true); // 等 DHCP/路由生效,再刷新"使用中"标记
+            }
             else Toast.Error(message);
         }
         catch (Exception ex)
@@ -148,6 +183,7 @@ public partial class ProfilesViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+            await RefreshAsync().ConfigureAwait(true); // 失败也可能改了一半配置,统一按实际状态刷新
         }
     }
 

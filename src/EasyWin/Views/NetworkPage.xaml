@@ -226,7 +226,8 @@
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ui:ProgressRing Width="52" Height="52" IsIndeterminate="True" />
-                <TextBlock Text="正在执行网络操作…" Margin="0,12,0,0" HorizontalAlignment="Center" />
+                <TextBlock Text="正在执行网络操作…" Margin="0,12,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
             </StackPanel>
         </Border>
     </Grid>

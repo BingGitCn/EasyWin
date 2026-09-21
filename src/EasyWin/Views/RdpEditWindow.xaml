@@ -49,8 +49,9 @@
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.45" />
                         </Border.Effect>
-                        <StackPanel>
-                            <TextBlock x:Name="ScanStatusText" Text="正在扫描本网段…" Margin="6,4" FontSize="12"
+                        <!-- DockPanel 让列表拿到剩余的有限高度,ScrollViewer 才会生效(StackPanel 会给无限高度导致无法滚动) -->
+                        <DockPanel>
+                            <TextBlock x:Name="ScanStatusText" DockPanel.Dock="Top" Text="正在扫描本网段…" Margin="6,4" FontSize="12"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <ListBox x:Name="ScanList" Background="Transparent" BorderThickness="0"
                                      SelectionChanged="OnScanItemSelected" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -69,7 +70,7 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
-                        </StackPanel>
+                        </DockPanel>
                     </Border>
                 </Popup>
             </Grid>

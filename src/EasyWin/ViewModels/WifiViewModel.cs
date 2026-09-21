@@ -31,6 +31,12 @@ public partial class WifiViewModel : ObservableObject
     public async Task RefreshAsync()
     {
         if (IsWifiScanning) return;
+        await ScanAsyncCore().ConfigureAwait(true);
+    }
+
+    /// <summary>实际扫描逻辑,不带"扫描中"守卫;连接完成后复用,否则会被自己的 IsWifiScanning 拦住。</summary>
+    private async Task ScanAsyncCore()
+    {
         IsWifiScanning = true;
         try
         {
@@ -94,15 +100,11 @@ public partial class WifiViewModel : ObservableObject
             if (!ok) { Toast.Error(message); return; }
 
             var connected = await Task.Run(() => WlanService.WaitConnectedAsync(network.Ssid)).ConfigureAwait(true);
-            if (connected)
-            {
-                Toast.Success($"已连接「{network.Ssid}」");
-                await RefreshAsync().ConfigureAwait(true);
-            }
-            else
-            {
-                Toast.Warning($"「{network.Ssid}」连接未完成(密码错误或信号不稳),请重试或检查密码。");
-            }
+            if (connected) Toast.Success($"已连接「{network.Ssid}」");
+            else Toast.Warning($"「{network.Ssid}」连接未完成(密码错误或信号不稳),请重试或检查密码。");
+
+            // 无论等待是否超时都重扫一次,让"已连接"徽章与实际连接状态一致
+            await ScanAsyncCore().ConfigureAwait(true);
         }
         catch (Exception ex)
         {

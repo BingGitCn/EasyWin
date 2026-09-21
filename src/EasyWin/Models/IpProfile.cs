@@ -1,5 +1,7 @@
 namespace EasyWin.Models;
 
+using System.Text.Json.Serialization;
+
 public enum IpConfigMode
 {
     Dhcp,
@@ -29,6 +31,10 @@ public class IpProfile
     public string Dns2 { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    /// <summary>运行态:方案是否与网卡当前配置一致,由列表页刷新时计算,不持久化。</summary>
+    [JsonIgnore]
+    public bool InUse { get; set; }
 
     public string ModeText => Mode == IpConfigMode.Dhcp ? "DHCP 自动获取" : "静态 IP";
 

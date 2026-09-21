@@ -59,6 +59,11 @@
 
                                 <StackPanel>
                                     <DockPanel>
+                                        <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
+                                                Background="#334CC38A" VerticalAlignment="Center"
+                                                Visibility="{Binding InUse, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="使用中" FontSize="11" Foreground="#7ADFA9" />
+                                        </Border>
                                         <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
                                                 Background="{DynamicResource ControlFillColorDefaultBrush}"
                                                 VerticalAlignment="Center">
@@ -105,7 +110,8 @@
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ui:ProgressRing Width="52" Height="52" IsIndeterminate="True" />
-                <TextBlock Text="正在切换网络配置…" Margin="0,12,0,0" HorizontalAlignment="Center" />
+                <TextBlock Text="正在切换网络配置…" Margin="0,12,0,0" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
             </StackPanel>
         </Border>
     </Grid>
