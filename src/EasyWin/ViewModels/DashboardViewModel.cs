@@ -27,6 +27,8 @@ public partial class DashboardViewModel : ObservableObject
     {
         if (_timer.IsEnabled) return;
         LoadStaticInfo();
+        // 后台预热 CPU 计数器(首次采样初始化较慢,避免卡 UI)
+        _ = System.Threading.Tasks.Task.Run(() => _system.GetCpuUsage());
         _timer.Start();
     }
 
@@ -65,21 +67,38 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
-    private void Tick()
+    private int _tickInProgress;
+
+    /// <summary>采样计算放后台线程,结果回 UI 更新;带重入保护。</summary>
+    private async void Tick()
     {
-        var memory = _system.GetMemory();
-        MemTotalText = FormatBytes(memory.TotalBytes);
-        MemUsedText = FormatBytes(memory.TotalBytes - memory.AvailableBytes);
-        MemPercent = memory.TotalBytes == 0 ? 0 : (memory.TotalBytes - memory.AvailableBytes) * 100.0 / memory.TotalBytes;
+        if (System.Threading.Interlocked.Exchange(ref _tickInProgress, 1) == 1) return;
+        try
+        {
+            var (memory, cpu, uptime) = await System.Threading.Tasks.Task.Run(() =>
+                (_system.GetMemory(), _system.GetCpuUsage(), _system.GetUptime())).ConfigureAwait(true);
 
-        var cpu = _system.GetCpuUsage();
-        CpuPercent = double.IsNaN(cpu) ? 0 : Math.Clamp(cpu, 0, 100);
+            MemTotalText = FormatBytes(memory.TotalBytes);
+            MemUsedText = FormatBytes(memory.TotalBytes - memory.AvailableBytes);
+            MemPercent = memory.TotalBytes == 0 ? 0 : (memory.TotalBytes - memory.AvailableBytes) * 100.0 / memory.TotalBytes;
 
-        var uptime = _system.GetUptime();
-        UptimeText = uptime.Days > 0 ? $"{uptime.Days} 天 {uptime.Hours} 小时 {uptime.Minutes} 分" : $"{uptime.Hours} 小时 {uptime.Minutes} 分";
+            CpuPercent = double.IsNaN(cpu) ? 0 : Math.Clamp(cpu, 0, 100);
 
-        if (++_pingCounter % 10 == 0)
-            UpdatePingNow();
+            UptimeText = uptime.Days > 0
+                ? $"{uptime.Days} 天 {uptime.Hours} 小时 {uptime.Minutes} 分"
+                : $"{uptime.Hours} 小时 {uptime.Minutes} 分";
+
+            if (++_pingCounter % 10 == 0)
+                UpdatePingNow();
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("采样失败: " + ex.Message);
+        }
+        finally
+        {
+            System.Threading.Interlocked.Exchange(ref _tickInProgress, 0);
+        }
     }
 
     private async void UpdatePingNow()
