@@ -44,10 +44,8 @@
             </StackPanel>
         </DockPanel>
 
-        <ScrollViewer
-            Grid.Row="1"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            Grid.Row="1">
             <StackPanel>
                 <!--  已保存的 Wi-Fi 密码  -->
                 <TextBlock
@@ -183,7 +181,7 @@
                 </ItemsControl>
 
             </StackPanel>
-        </ScrollViewer>
+        </StackPanel>
 
         <!--  空态:有 WLAN 且列表为空时显示  -->
         <controls:EmptyState

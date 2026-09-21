@@ -33,9 +33,9 @@
             </StackPanel>
         </DockPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
-                <ItemsControl ItemsSource="{Binding Profiles}" HorizontalAlignment="Left">
+        <!-- 页面滚动统一交给 NavigationView 外层滚动器 -->
+        <StackPanel Grid.Row="1">
+            <ItemsControl ItemsSource="{Binding Profiles}" HorizontalAlignment="Left">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
@@ -173,8 +173,7 @@
                         </Style>
                     </controls:EmptyState.Style>
                 </controls:EmptyState>
-            </StackPanel>
-        </ScrollViewer>
+        </StackPanel>
 
         <!-- 忙碌遮罩 -->
         <Border Grid.RowSpan="2" Background="{DynamicResource ApplicationBackgroundBrush}"

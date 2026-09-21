@@ -31,9 +31,9 @@
             </StackPanel>
         </DockPanel>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel>
-                <ItemsControl ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
+        <!-- 页面滚动统一交给 NavigationView 外层滚动器(内层 SV 会被导航布局撑开,导致滚轮失效) -->
+        <StackPanel Grid.Row="1">
+            <ItemsControl ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
@@ -203,8 +203,7 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
-        </ScrollViewer>
+        </StackPanel>
 
         <!-- 空态 -->
         <controls:EmptyState Grid.Row="1"

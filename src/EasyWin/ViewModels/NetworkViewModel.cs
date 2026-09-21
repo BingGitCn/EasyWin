@@ -133,9 +133,15 @@ public partial class NetworkViewModel : ObservableObject
             !await Ui.ConfirmAsync("网卡已禁用", $"「{adapter.ConnectionName}」当前处于禁用状态,配置可能无法完整生效。", "建议先启用网卡再修改 IP 配置。仍要继续吗?"))
             return;
 
+        var hasCustomDns = !string.IsNullOrWhiteSpace(Dns1);
+
         if (!IsStaticMode)
         {
-            if (!await Ui.ConfirmAsync("切换为 DHCP", $"确定让「{adapter.ConnectionName}」自动获取 IP 和 DNS 吗?", "切换过程中网络会短暂中断。")) return;
+            var detail = hasCustomDns
+                ? $"IP 将自动获取,DNS 使用手填的 {Dns1.Trim()}/{(string.IsNullOrWhiteSpace(Dns2) ? "(无备用)" : Dns2.Trim())}。"
+                : "IP 和 DNS 都将自动获取。";
+            if (!await Ui.ConfirmAsync("切换为 DHCP", $"确定让「{adapter.ConnectionName}」自动获取 IP 吗?", detail + "\n切换过程中网络会短暂中断。")) return;
+            if (hasCustomDns && !await ValidateDnsInput()) return;
         }
         else
         {
@@ -156,14 +162,15 @@ public partial class NetworkViewModel : ObservableObject
                 return;
             }
 
-            CmdResult dnsResult = IsStaticMode
+            // DNS:静态模式用手填值;DHCP 模式下填了 DNS 也用静态,留空则恢复自动获取
+            CmdResult dnsResult = IsStaticMode || hasCustomDns
                 ? await _network.SetStaticDnsAsync(adapter.ConnectionName, NullIfEmpty(Dns1), NullIfEmpty(Dns2)).ConfigureAwait(true)
                 : await _network.SetDhcpDnsAsync(adapter.ConnectionName).ConfigureAwait(true);
 
             if (!dnsResult.Ok) Toast.Error($"IP 已生效,但 DNS 设置失败:{dnsResult.AllText}");
-            else Toast.Success(IsStaticMode
-                ? $"{adapter.ConnectionName} 静态配置已应用"
-                : $"{adapter.ConnectionName} 已切换为 DHCP");
+            else if (IsStaticMode) Toast.Success($"{adapter.ConnectionName} 静态配置已应用");
+            else if (hasCustomDns) Toast.Success($"{adapter.ConnectionName} 已切换为 DHCP,使用自定义 DNS");
+            else Toast.Success($"{adapter.ConnectionName} 已切换为 DHCP");
 
             await RefreshAsync().ConfigureAwait(true);
         }).ConfigureAwait(true);
@@ -177,6 +184,12 @@ public partial class NetworkViewModel : ObservableObject
         if (!NetworkService.IsValidIPv4(IpAddress)) { await Ui.AlertAsync("参数无效", "IP 地址格式不正确。"); return false; }
         if (!NetworkService.IsValidMask(SubnetMask)) { await Ui.AlertAsync("参数无效", "子网掩码格式不正确。"); return false; }
         if (!string.IsNullOrWhiteSpace(Gateway) && !NetworkService.IsValidIPv4(Gateway)) { await Ui.AlertAsync("参数无效", "网关格式不正确。"); return false; }
+        return await ValidateDnsInput();
+    }
+
+    /// <summary>DNS 填写格式校验(静态/DHCP 模式共用)。</summary>
+    private async Task<bool> ValidateDnsInput()
+    {
         if (!string.IsNullOrWhiteSpace(Dns1) && !NetworkService.IsValidIPv4(Dns1)) { await Ui.AlertAsync("参数无效", "首选 DNS 格式不正确。"); return false; }
         if (!string.IsNullOrWhiteSpace(Dns2) && !NetworkService.IsValidIPv4(Dns2)) { await Ui.AlertAsync("参数无效", "备用 DNS 格式不正确。"); return false; }
         return true;

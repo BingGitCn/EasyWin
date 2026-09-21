@@ -163,7 +163,7 @@
                                      IsChecked="{Binding IsStaticMode, Mode=TwoWay}" />
                     </StackPanel>
 
-                    <Grid IsEnabled="{Binding IsStaticMode}">
+                    <Grid Margin="0,0,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="14" />
@@ -179,24 +179,24 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0" Grid.Column="0">
+                        <StackPanel Grid.Row="0" Grid.Column="0" IsEnabled="{Binding IsStaticMode}">
                             <TextBlock Text="IP 地址" Style="{StaticResource FieldLabelText}" />
                             <ui:TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"
                                         PlaceholderText="192.168.1.100" />
                         </StackPanel>
-                        <StackPanel Grid.Row="0" Grid.Column="2">
+                        <StackPanel Grid.Row="0" Grid.Column="2" IsEnabled="{Binding IsStaticMode}">
                             <TextBlock Text="子网掩码" Style="{StaticResource FieldLabelText}" />
                             <ui:TextBox Text="{Binding SubnetMask, UpdateSourceTrigger=PropertyChanged}"
                                         PlaceholderText="255.255.255.0" />
                         </StackPanel>
 
-                        <StackPanel Grid.Row="2" Grid.Column="0">
+                        <StackPanel Grid.Row="2" Grid.Column="0" IsEnabled="{Binding IsStaticMode}">
                             <TextBlock Text="默认网关(可留空)" Style="{StaticResource FieldLabelText}" />
                             <ui:TextBox Text="{Binding Gateway, UpdateSourceTrigger=PropertyChanged}"
                                         PlaceholderText="192.168.1.1" />
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="2">
-                            <TextBlock Text="首选 DNS(可留空)" Style="{StaticResource FieldLabelText}" />
+                            <TextBlock Text="首选 DNS(DHCP 模式也可指定)" Style="{StaticResource FieldLabelText}" />
                             <ui:TextBox Text="{Binding Dns1, UpdateSourceTrigger=PropertyChanged}"
                                         PlaceholderText="223.5.5.5" />
                         </StackPanel>
