@@ -165,6 +165,14 @@
                                               Command="{Binding DataContext.OpenDiskCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                               CommandParameter="{Binding}" />
                             </ui:Card.InputBindings>
+                            <ui:Card.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="打开" Click="OnDiskOpenClick" />
+                                    <MenuItem Header="安全弹出" FontWeight="SemiBold"
+                                              Visibility="{Binding IsRemovable, Converter={StaticResource BoolToVis}}"
+                                              Click="OnDiskEjectClick" />
+                                </ContextMenu>
+                            </ui:Card.ContextMenu>
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>

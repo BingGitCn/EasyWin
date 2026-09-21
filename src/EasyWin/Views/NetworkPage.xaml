@@ -212,8 +212,16 @@
                  Visibility="{Binding IsWlanAvailable, Converter={StaticResource BoolToVis}}">
             <StackPanel>
                 <DockPanel Margin="0,0,0,12">
-                    <ui:Button DockPanel.Dock="Right" Content="重新扫描" Icon="{ui:SymbolIcon ArrowSync24}"
-                               Appearance="Secondary" Command="{Binding ScanWifiCommand}" />
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:ProgressRing Width="16" Height="16" IsIndeterminate="True" Margin="0,0,8,0"
+                                         Visibility="{Binding IsWifiScanning, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Text="正在扫描附近网络…" Style="{StaticResource CaptionText}" Margin="0,0,12,0"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding IsWifiScanning, Converter={StaticResource BoolToVis}}" />
+                        <ui:Button Content="重新扫描" Icon="{ui:SymbolIcon ArrowSync24}"
+                                   Appearance="Secondary" Command="{Binding ScanWifiCommand}"
+                                   IsEnabled="{Binding IsWifiScanning, Converter={StaticResource InverseBool}}" />
+                    </StackPanel>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:SymbolIcon Symbol="Wifi124" FontSize="17" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock Text="Wi-Fi 快速切换" FontSize="15" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center" />

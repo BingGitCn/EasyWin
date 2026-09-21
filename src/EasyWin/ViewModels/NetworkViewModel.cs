@@ -78,7 +78,11 @@ public partial class NetworkViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        var adapters = await Task.Run(() => _network.GetAdapters()).ConfigureAwait(true);
+        // 网卡与 Wi-Fi 并行扫描,总耗时取两者较慢者而非相加
+        var adapterTask = Task.Run(() => _network.GetAdapters());
+        var wifiTask = RefreshWifiAsync();
+
+        var adapters = await adapterTask.ConfigureAwait(true);
         var selected = SelectedAdapter?.ConnectionName;
 
         Adapters.Clear();
@@ -87,7 +91,21 @@ public partial class NetworkViewModel : ObservableObject
         SelectedAdapter = Adapters.FirstOrDefault(a => a.ConnectionName == selected)
                           ?? Adapters.FirstOrDefault();
 
-        await RefreshWifiAsync().ConfigureAwait(true);
+        await wifiTask.ConfigureAwait(true);
+    }
+
+    /// <summary>刷新 Wi-Fi 部分(页面加载时自动执行)。</summary>
+    private async Task RefreshWifiAsync()
+    {
+        try
+        {
+            await ScanWifiCoreAsync().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Wi-Fi 初始化失败: " + ex.Message);
+            IsWlanAvailable = false;
+        }
     }
 
     /// <summary>扫描附近 Wi-Fi(无 WLAN 接口时整段隐藏)。</summary>
@@ -95,18 +113,29 @@ public partial class NetworkViewModel : ObservableObject
     private async Task ScanWifiAsync()
     {
         if (IsWifiScanning) return;
+        await ScanWifiCoreAsync().ConfigureAwait(true);
+    }
+
+    private async Task ScanWifiCoreAsync()
+    {
         IsWifiScanning = true;
         try
         {
-            var (networks, current) = await Task.Run(() =>
+            var (available, networks, current) = await Task.Run(() =>
             {
+                if (!WlanService.IsWlanAvailable())
+                    return (false, new List<WlanNetwork>(), (string?)null);
                 var cur = WlanService.GetCurrentSsid();
-                return (WlanService.ListNetworks(cur), cur);
+                return (true, WlanService.ListNetworks(cur), cur);
             }).ConfigureAwait(true);
 
-            WlanNetworks.Clear();
-            foreach (var n in networks) WlanNetworks.Add(n);
-            CurrentWifiText = current == null ? "未连接 Wi-Fi" : $"当前 Wi-Fi:{current}";
+            IsWlanAvailable = available;
+            if (available)
+            {
+                WlanNetworks.Clear();
+                foreach (var n in networks) WlanNetworks.Add(n);
+                CurrentWifiText = current == null ? "未连接 Wi-Fi" : $"当前 Wi-Fi:{current}";
+            }
         }
         catch (Exception ex)
         {
@@ -116,21 +145,6 @@ public partial class NetworkViewModel : ObservableObject
         finally
         {
             IsWifiScanning = false;
-        }
-    }
-
-    private async Task RefreshWifiAsync()
-    {
-        try
-        {
-            IsWlanAvailable = await Task.Run(WlanService.IsWlanAvailable).ConfigureAwait(true);
-            if (IsWlanAvailable)
-                await ScanWifiAsync().ConfigureAwait(true);
-        }
-        catch (Exception ex)
-        {
-            Log.Warn("Wi-Fi 初始化失败: " + ex.Message);
-            IsWlanAvailable = false;
         }
     }
 

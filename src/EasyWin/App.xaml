@@ -1,8 +1,9 @@
-<Application x:Class="EasyWin.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             StartupUri="Views/MainWindow.xaml">
+<Application
+    x:Class="EasyWin.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -12,9 +13,9 @@
 
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
-            <services:InverseBoolConverter x:Key="InverseBool" xmlns:services="clr-namespace:EasyWin.Services" />
-            <services:NotNullToVisConverter x:Key="NotNullToVis" xmlns:services="clr-namespace:EasyWin.Services" />
-            <services:BoolToRememberConverter x:Key="BoolToRemember" xmlns:services="clr-namespace:EasyWin.Services" />
+            <services:InverseBoolConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="InverseBool" />
+            <services:NotNullToVisConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="NotNullToVis" />
+            <services:BoolToRememberConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="BoolToRemember" />
 
             <Style x:Key="PageTitleText" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="24" />
@@ -35,7 +36,10 @@
                 <Setter Property="Margin" Value="0,0,0,4" />
             </Style>
 
-            <Style x:Key="CaptionText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Style
+                x:Key="CaptionText"
+                BasedOn="{StaticResource {x:Type TextBlock}}"
+                TargetType="TextBlock">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
             </Style>

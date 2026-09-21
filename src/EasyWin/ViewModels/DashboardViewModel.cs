@@ -138,6 +138,30 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
+    /// <summary>安全弹出可移动磁盘(U 盘/移动硬盘)。</summary>
+    [RelayCommand]
+    private async Task EjectDiskAsync(DiskInfo? disk)
+    {
+        if (disk == null || !disk.IsRemovable) return;
+        if (!await Ui.ConfirmAsync("安全弹出", $"确定弹出「{disk.Drive} {disk.Label}」吗?", "弹出前请确保磁盘上的文件都已关闭。")) return;
+
+        var (ok, message) = await System.Threading.Tasks.Task.Run(
+            () => UsbEjectService.Eject(disk.Drive)).ConfigureAwait(true);
+        if (ok)
+        {
+            Toast.Success(message);
+            await System.Threading.Tasks.Task.Delay(800).ConfigureAwait(true);
+            var disks = await System.Threading.Tasks.Task.Run(() => _system.GetDisks()).ConfigureAwait(true);
+            _lastDiskSnapshot = DiskSnapshot(disks);
+            Disks.Clear();
+            foreach (var d in disks) Disks.Add(d);
+        }
+        else
+        {
+            Toast.Error(message);
+        }
+    }
+
     private async void UpdatePingNow()
     {
         var reply = await _network.PingAsync("223.5.5.5").ConfigureAwait(true);

@@ -80,7 +80,7 @@ public class SystemInfoService
             if ((drive.DriveType != System.IO.DriveType.Fixed && drive.DriveType != System.IO.DriveType.Removable) || !drive.IsReady) continue;
             try
             {
-                disks.Add(new DiskInfo(drive.Name, drive.VolumeLabel, drive.TotalSize, drive.AvailableFreeSpace));
+                disks.Add(new DiskInfo(drive.Name, drive.VolumeLabel, drive.TotalSize, drive.AvailableFreeSpace, drive.DriveType == System.IO.DriveType.Removable));
             }
             catch { /* 个别盘符可能拒绝访问 */ }
         }

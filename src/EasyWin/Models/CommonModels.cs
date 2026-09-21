@@ -2,7 +2,7 @@ namespace EasyWin.Models;
 
 public record PowerPlan(string Guid, string Name, bool IsActive);
 
-public record DiskInfo(string Drive, string Label, long TotalBytes, long FreeBytes)
+public record DiskInfo(string Drive, string Label, long TotalBytes, long FreeBytes, bool IsRemovable = false)
 {
     public string TotalText => Format(TotalBytes);
     public string FreeText => Format(FreeBytes);
