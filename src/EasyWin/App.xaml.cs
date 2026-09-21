@@ -42,17 +42,20 @@ public partial class App : Application
         { IsBackground = true };
         listener.Start();
 
-        // 主题:--theme=light|dark,默认记住上次选择,首次为深色(注意 SettingsStore.Theme 的语义是 true=深色)
+        // 主题:--theme=light|dark 强制指定;否则按设置(跟随系统/浅色/深色,默认深色)
         var themeArg = e.Args.FirstOrDefault(a => a.StartsWith("--theme=", StringComparison.OrdinalIgnoreCase));
         var isDark = themeArg != null
             ? themeArg.Substring("--theme=".Length).Equals("dark", StringComparison.OrdinalIgnoreCase)
-            : SettingsStore.Theme;
+            : SettingsStore.IsDark;
         Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
             isDark ? Wpf.Ui.Appearance.ApplicationTheme.Dark : Wpf.Ui.Appearance.ApplicationTheme.Light);
-        Log.Info($"主题应用: arg={themeArg ?? "(无)"} -> {Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()}");
+        Log.Info($"主题应用: arg={themeArg ?? "(无)"} mode={SettingsStore.Mode} -> {Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme()}");
 
         // 场景自动化:订阅网络变化,常驻后台时规则才能生效
         _ = GetService<AutomationService>();
+
+        // 电源计划自动切换:插电/用电池时按配置切计划
+        _ = GetService<PowerPlanAutoSwitchService>();
 
         base.OnStartup(e);
     }
@@ -100,14 +103,15 @@ public partial class App : Application
         _ when type == typeof(RdpProfileStore) => new RdpProfileStore(),
         _ when type == typeof(AutomationStore) => new AutomationStore(),
         _ when type == typeof(AutomationService) => new AutomationService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>()),
+        _ when type == typeof(PowerPlanAutoSwitchService) => new PowerPlanAutoSwitchService(),
         _ when type == typeof(TrayService) => new TrayService(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<WifiViewModel>()),
         _ when type == typeof(SystemInfoService) => new SystemInfoService(),
         _ when type == typeof(NetworkViewModel) => new NetworkViewModel(GetService<NetworkService>()),
-        _ when type == typeof(ProfilesViewModel) => new ProfilesViewModel(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>(), GetService<WifiViewModel>()),
+        _ when type == typeof(ProfilesViewModel) => new ProfilesViewModel(GetService<NetworkService>(), GetService<ProfileStore>(), GetService<AutomationStore>(), GetService<WifiViewModel>(), GetService<AutomationService>()),
         _ when type == typeof(RdpViewModel) => new RdpViewModel(GetService<RdpProfileStore>(), GetService<NetworkService>()),
         _ when type == typeof(WifiViewModel) => new WifiViewModel(GetService<NetworkService>()),
         _ when type == typeof(NetToolsViewModel) => new NetToolsViewModel(GetService<NetworkService>()),
-        _ when type == typeof(TweaksViewModel) => new TweaksViewModel(GetService<NetworkService>()),
+        _ when type == typeof(TweaksViewModel) => new TweaksViewModel(GetService<NetworkService>(), GetService<PowerPlanAutoSwitchService>()),
         _ when type == typeof(DashboardViewModel) => new DashboardViewModel(GetService<SystemInfoService>(), GetService<NetworkService>()),
         _ when type == typeof(LauncherViewModel) => new LauncherViewModel(),
         _ when type == typeof(AboutViewModel) => new AboutViewModel(),

@@ -15,13 +15,16 @@ public partial class ProfilesViewModel : ObservableObject
     private readonly ProfileStore _store;
     private readonly AutomationStore _rules;
     private readonly WifiViewModel _wifi;
+    private readonly AutomationService _automation;
 
-    public ProfilesViewModel(NetworkService network, ProfileStore store, AutomationStore rules, WifiViewModel wifi)
+    public ProfilesViewModel(NetworkService network, ProfileStore store, AutomationStore rules,
+        WifiViewModel wifi, AutomationService automation)
     {
         _network = network;
         _store = store;
         _rules = rules;
         _wifi = wifi;
+        _automation = automation;
     }
 
     public ObservableCollection<IpProfile> Profiles { get; } = [];
@@ -290,6 +293,7 @@ public partial class ProfilesViewModel : ObservableObject
         if (index >= 0) all[index] = rule; else all.Add(rule);
         _rules.Save(all);
         Toast.Show(rule.Enabled ? $"规则已启用:{rule.Ssid}" : $"规则已停用:{rule.Ssid}", ToastType.Info);
+        if (rule.Enabled) _ = _automation.CheckNowAsync(); // 当前正连着该 Wi-Fi 时立即生效
     }
 
     [RelayCommand]
@@ -300,6 +304,7 @@ public partial class ProfilesViewModel : ObservableObject
         {
             _rules.Save([.. _rules.Load(), rule]);
             Toast.Success($"自动化规则已创建:{rule.Ssid}");
+            if (rule.Enabled) _ = _automation.CheckNowAsync();
             await RefreshRulesAsync().ConfigureAwait(true);
         }
     }
@@ -310,6 +315,7 @@ public partial class ProfilesViewModel : ObservableObject
         if (rule != null && await EditRuleCoreAsync(rule))
         {
             PersistRuleSilently(rule);
+            if (rule.Enabled) _ = _automation.CheckNowAsync();
             await RefreshRulesAsync().ConfigureAwait(true);
         }
     }

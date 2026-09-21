@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:controls="clr-namespace:EasyWin.Controls"
     d:DesignHeight="700"
     d:DesignWidth="1000"
     mc:Ignorable="d">
@@ -185,15 +186,15 @@
         </ScrollViewer>
 
         <!--  空态:有 WLAN 且列表为空时显示  -->
-        <TextBlock
+        <controls:EmptyState
             Grid.Row="1"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
-            FontSize="14"
-            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-            Text="附近暂未发现 Wi-Fi 网络,点击右上角「重新扫描」再试">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
+            Symbol="Wifi124"
+            Title="附近暂未发现 Wi-Fi 网络"
+            Caption="点击右上角「重新扫描」再试;扫描约需几秒,离路由器越近发现得越多">
+            <controls:EmptyState.Style>
+                <Style TargetType="controls:EmptyState">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                         <MultiDataTrigger>
@@ -205,7 +206,7 @@
                         </MultiDataTrigger>
                     </Style.Triggers>
                 </Style>
-            </TextBlock.Style>
-        </TextBlock>
+            </controls:EmptyState.Style>
+        </controls:EmptyState>
     </Grid>
 </Page>

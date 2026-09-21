@@ -4,6 +4,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:controls="clr-namespace:EasyWin.Controls"
       mc:Ignorable="d"
       d:DesignHeight="760"
       d:DesignWidth="1000">
@@ -24,13 +25,14 @@
             </DockPanel>
 
             <!-- 概览卡片:第一行 -->
+            <!-- 概览卡片:第一行(VerticalAlignment=Stretch 让同排卡片统一取最高高度) -->
             <Grid Margin="0,18,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ui:Card Grid.Column="0" Margin="0,0,12,12" Padding="16">
+                <ui:Card Grid.Column="0" Margin="0,0,12,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Desktop24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -45,7 +47,7 @@
                     </StackPanel>
                 </ui:Card>
 
-                <ui:Card Grid.Column="1" Margin="0,0,12,12" Padding="16">
+                <ui:Card Grid.Column="1" Margin="0,0,12,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="ShieldCheckmark24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -56,7 +58,7 @@
                     </StackPanel>
                 </ui:Card>
 
-                <ui:Card Grid.Column="2" Margin="0,0,0,12" Padding="16">
+                <ui:Card Grid.Column="2" Margin="0,0,0,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Router24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -80,6 +82,15 @@
                             <TextBlock Text="{Binding InternetText}" Style="{StaticResource CaptionText}" />
                             <TextBlock Text="{Binding AdapterCountText}" Style="{StaticResource CaptionText}" Margin="12,0,0,0" />
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="↓" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DownloadText}" FontSize="12" FontWeight="SemiBold" Margin="4,0,0,0"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="↑" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Margin="14,0,0,0" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding UploadText}" FontSize="12" FontWeight="SemiBold" Margin="4,0,0,0"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <controls:Sparkline Values="{Binding NetHistory}" Height="30" Margin="0,8,0,0" />
                     </StackPanel>
                 </ui:Card>
             </Grid>
@@ -91,7 +102,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <ui:Card Grid.Column="0" Margin="0,0,12,12" Padding="16">
+                <ui:Card Grid.Column="0" Margin="0,0,12,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Settings24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -107,12 +118,11 @@
                             <TextBlock Grid.Column="1" Text="{Binding CpuPercent, StringFormat={}{0:0}%}" FontSize="15"
                                        FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </Grid>
-                        <ProgressBar Value="{Binding CpuPercent, Mode=OneWay}" Maximum="100" Height="5" Margin="0,10,0,0"
-                                     Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <controls:Sparkline Values="{Binding CpuHistory}" Height="34" Margin="0,10,0,0" />
                     </StackPanel>
                 </ui:Card>
 
-                <ui:Card Grid.Column="1" Margin="0,0,12,12" Padding="16">
+                <ui:Card Grid.Column="1" Margin="0,0,12,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Grid24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -132,12 +142,11 @@
                             <TextBlock Grid.Column="1" Text="{Binding MemPercent, StringFormat={}{0:0}%}" FontSize="15"
                                        FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </Grid>
-                        <ProgressBar Value="{Binding MemPercent, Mode=OneWay}" Maximum="100" Height="5" Margin="0,10,0,0"
-                                     Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <controls:Sparkline Values="{Binding MemHistory}" Height="34" Margin="0,10,0,0" />
                     </StackPanel>
                 </ui:Card>
 
-                <ui:Card Grid.Column="2" Margin="0,0,0,12" Padding="16">
+                <ui:Card Grid.Column="2" Margin="0,0,0,12" Padding="16" VerticalAlignment="Stretch" VerticalContentAlignment="Top">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:SymbolIcon Symbol="Clock24" FontSize="18" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -159,7 +168,8 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ui:Card Width="326" Margin="0,0,12,12" Padding="16" Cursor="Hand" ToolTip="双击打开磁盘">
+                        <ui:Card Width="326" Margin="0,0,12,12" Padding="16" Cursor="Hand" ToolTip="双击打开磁盘"
+                                 Style="{StaticResource LiftCard}">
                             <ui:Card.InputBindings>
                                 <MouseBinding Gesture="LeftDoubleClick"
                                               Command="{Binding DataContext.OpenDiskCommand, RelativeSource={RelativeSource AncestorType=Page}}"

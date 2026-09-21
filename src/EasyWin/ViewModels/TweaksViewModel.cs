@@ -102,10 +102,12 @@ public partial class TweakCardViewModel : ObservableObject
 public partial class TweaksViewModel : ObservableObject
 {
     private readonly NetworkService _network;
+    private readonly PowerPlanAutoSwitchService _powerAuto;
 
-    public TweaksViewModel(NetworkService network)
+    public TweaksViewModel(NetworkService network, PowerPlanAutoSwitchService powerAuto)
     {
         _network = network;
+        _powerAuto = powerAuto;
 
         UpdateSection =
         [
@@ -164,6 +166,34 @@ public partial class TweaksViewModel : ObservableObject
 
     [ObservableProperty] private PowerPlan? _activePlan;
     [ObservableProperty] private bool _isBusy;
+
+    // ---------------- 电源计划自动切换 ----------------
+
+    /// <summary>只 load 一次作为初值;之后由 RefreshAsync 按 PowerPlans 解析,避免打开页面就触发写入。</summary>
+    [ObservableProperty] private bool _powerAutoEnabled = SettingsStore.PowerAutoEnabled;
+
+    [ObservableProperty] private string? _acPlanGuid = SettingsStore.AcPlanGuid;
+    [ObservableProperty] private string? _batteryPlanGuid = SettingsStore.BatteryPlanGuid;
+
+    partial void OnPowerAutoEnabledChanged(bool value)
+    {
+        SettingsStore.PowerAutoEnabled = value;
+        if (value) _ = _powerAuto.CheckNowAsync(); // 开启后立即按当前供电状态生效
+    }
+
+    partial void OnAcPlanGuidChanged(string? value)
+    {
+        if (value == null) return;
+        SettingsStore.AcPlanGuid = value;
+        _ = _powerAuto.CheckNowAsync(); // 选择后立即按当前供电状态生效
+    }
+
+    partial void OnBatteryPlanGuidChanged(string? value)
+    {
+        if (value == null) return;
+        SettingsStore.BatteryPlanGuid = value;
+        _ = _powerAuto.CheckNowAsync();
+    }
 
     [RelayCommand]
     public async Task RefreshAsync()

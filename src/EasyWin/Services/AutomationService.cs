@@ -29,28 +29,26 @@ public class AutomationService
 
     private void OnNetworkChanged(object? sender, EventArgs e) => _ = CheckAsync();
 
-    /// <summary>外部(如刚改完规则)可主动触发一次检查。</summary>
-    public async Task CheckNowAsync()
-    {
-        _lastSsid = null; // 强制按"SSID 变化"路径重新评估
-        await CheckAsync().ConfigureAwait(false);
-    }
+    /// <summary>外部主动触发(如刚改完规则):立即评估,忽略防抖与冷却,命中即应用。</summary>
+    public async Task CheckNowAsync() =>
+        await CheckAsync(forceApply: true).ConfigureAwait(false);
 
-    private async Task CheckAsync()
+    private async Task CheckAsync(bool forceApply = false)
     {
         if (Interlocked.Exchange(ref _checking, 1) == 1) return;
         try
         {
-            await Task.Delay(2500).ConfigureAwait(false); // 防抖:等连接/DHCP 稳定
+            if (!forceApply)
+                await Task.Delay(2500).ConfigureAwait(false); // 防抖:等连接/DHCP 稳定
 
             var ssid = await Task.Run(() => WlanService.GetCurrentSsid()).ConfigureAwait(false);
             if (ssid == null) { _lastSsid = null; return; }
-            if (string.Equals(ssid, _lastSsid, StringComparison.OrdinalIgnoreCase)) return;
+            if (!forceApply && string.Equals(ssid, _lastSsid, StringComparison.OrdinalIgnoreCase)) return;
 
             var previous = _lastSsid;
             _lastSsid = ssid; // 先记下,避免应用方案引起的网络抖动造成循环触发
-            if (previous == null) return; // 首次事件只记录基线,不在启动时乱切网络
-            if ((DateTime.Now - _lastTriggerAt).TotalSeconds < 15) return;
+            if (previous == null && !forceApply) return; // 首次事件只记录基线,不在启动时乱切网络
+            if (!forceApply && (DateTime.Now - _lastTriggerAt).TotalSeconds < 15) return;
 
             var rule = _rules.Load().FirstOrDefault(r => r.Enabled
                 && r.Ssid.Equals(ssid, StringComparison.OrdinalIgnoreCase));

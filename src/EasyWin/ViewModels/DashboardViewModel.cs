@@ -70,20 +70,31 @@ public partial class DashboardViewModel : ObservableObject
 
     private int _tickInProgress;
 
+    /// <summary>趋势图保留的采样点数(每秒一个)。</summary>
+    private const int HistoryLength = 60;
+
+    private ulong _prevReceived;
+    private ulong _prevSent;
+    private DateTime _prevNetAt = DateTime.MinValue;
+
     /// <summary>采样计算放后台线程,结果回 UI 更新;带重入保护。</summary>
     private async void Tick()
     {
         if (System.Threading.Interlocked.Exchange(ref _tickInProgress, 1) == 1) return;
         try
         {
-            var (memory, cpu, uptime) = await System.Threading.Tasks.Task.Run(() =>
-                (_system.GetMemory(), _system.GetCpuUsage(), _system.GetUptime())).ConfigureAwait(true);
+            var (memory, cpu, uptime, net) = await System.Threading.Tasks.Task.Run(() =>
+                (_system.GetMemory(), _system.GetCpuUsage(), _system.GetUptime(), _system.GetNetworkTotals())).ConfigureAwait(true);
 
             MemTotalText = FormatBytes(memory.TotalBytes);
             MemUsedText = FormatBytes(memory.TotalBytes - memory.AvailableBytes);
-            MemPercent = memory.TotalBytes == 0 ? 0 : (memory.TotalBytes - memory.AvailableBytes) * 100.0 / memory.TotalBytes;
+            var memPercent = memory.TotalBytes == 0 ? 0 : (memory.TotalBytes - memory.AvailableBytes) * 100.0 / memory.TotalBytes;
+            MemPercent = memPercent;
 
             CpuPercent = double.IsNaN(cpu) ? 0 : Math.Clamp(cpu, 0, 100);
+            CpuHistory = PushSample(CpuHistory, CpuPercent);
+            MemHistory = PushSample(MemHistory, memPercent);
+            UpdateNetSpeed(net.Received, net.Sent);
 
             UptimeText = uptime.Days > 0
                 ? $"{uptime.Days} 天 {uptime.Hours} 小时 {uptime.Minutes} 分"
@@ -111,6 +122,45 @@ public partial class DashboardViewModel : ObservableObject
             System.Threading.Interlocked.Exchange(ref _tickInProgress, 0);
         }
     }
+
+    private static double[] PushSample(double[] history, double sample)
+    {
+        if (history.Length < HistoryLength)
+        {
+            var grown = new double[history.Length + 1];
+            Array.Copy(history, grown, history.Length);
+            grown[^1] = sample;
+            return grown;
+        }
+        var shifted = new double[HistoryLength];
+        Array.Copy(history, 1, shifted, 0, HistoryLength - 1);
+        shifted[^1] = sample;
+        return shifted;
+    }
+
+    /// <summary>按上次采样差分出实时网速(KB/s)。</summary>
+    private void UpdateNetSpeed(ulong received, ulong sent)
+    {
+        var now = DateTime.Now;
+        if (_prevNetAt != DateTime.MinValue && now > _prevNetAt)
+        {
+            var seconds = (now - _prevNetAt).TotalSeconds;
+            // 计数器回绕(网卡重连/休眠恢复)时按 0 处理,避免出现速度尖峰
+            var downDelta = received >= _prevReceived ? received - _prevReceived : 0;
+            var upDelta = sent >= _prevSent ? sent - _prevSent : 0;
+            var down = downDelta / seconds / 1024;
+            var up = upDelta / seconds / 1024;
+            DownloadText = FormatSpeed(down);
+            UploadText = FormatSpeed(up);
+            NetHistory = PushSample(NetHistory, down);
+        }
+        _prevReceived = received;
+        _prevSent = sent;
+        _prevNetAt = now;
+    }
+
+    private static string FormatSpeed(double kbPerSec) =>
+        kbPerSec >= 1024 ? $"{kbPerSec / 1024:0.#} MB/s" : $"{kbPerSec:0} KB/s";
 
     private string? _lastDiskSnapshot;
 
@@ -196,6 +246,13 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private bool _internetOk;
     [ObservableProperty] private string _computerName = Environment.MachineName;
     [ObservableProperty] private string _userName = Environment.UserName;
+
+    // 趋势图数据(整体替换触发 Sparkline 重绘)
+    [ObservableProperty] private double[] _cpuHistory = [];
+    [ObservableProperty] private double[] _memHistory = [];
+    [ObservableProperty] private double[] _netHistory = [];
+    [ObservableProperty] private string _downloadText = "—";
+    [ObservableProperty] private string _uploadText = "—";
 
     public ObservableCollection<DiskInfo> Disks { get; } = [];
 }

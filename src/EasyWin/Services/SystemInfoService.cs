@@ -71,6 +71,27 @@ public class SystemInfoService
 
     public TimeSpan GetUptime() => TimeSpan.FromMilliseconds(Environment.TickCount64);
 
+    /// <summary>所有在线网卡的累计收发字节数(调用方做差分得到实时网速)。</summary>
+    public (ulong Received, ulong Sent) GetNetworkTotals()
+    {
+        ulong received = 0, sent = 0;
+        try
+        {
+            foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                var stats = ni.GetIPStatistics();
+                received += (ulong)stats.BytesReceived;
+                sent += (ulong)stats.BytesSent;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("读取网络流量失败: " + ex.Message);
+        }
+        return (received, sent);
+    }
+
     public List<DiskInfo> GetDisks()
     {
         var disks = new List<DiskInfo>();

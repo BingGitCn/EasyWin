@@ -16,6 +16,7 @@
             <services:InverseBoolConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="InverseBool" />
             <services:NotNullToVisConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="NotNullToVis" />
             <services:BoolToRememberConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="BoolToRemember" />
+            <services:ThemeModeToAppearanceConverter xmlns:services="clr-namespace:EasyWin.Services" x:Key="ThemeModeToAppearance" />
 
             <Style x:Key="PageTitleText" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="24" />
@@ -42,6 +43,34 @@
                 TargetType="TextBlock">
                 <Setter Property="FontSize" Value="12" />
                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            </Style>
+
+            <!-- 卡片悬停抬升:悬停时轻微上移并出现投影,增强可交互感(必须 BasedOn 主题默认样式,否则模板丢失) -->
+            <Style x:Key="LiftCard" TargetType="ui:Card" BasedOn="{StaticResource {x:Type ui:Card}}">
+                <Setter Property="RenderTransform">
+                    <Setter.Value>
+                        <TranslateTransform Y="0" />
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0" />
+                    </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="RenderTransform">
+                            <Setter.Value>
+                                <TranslateTransform Y="-2" />
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Effect">
+                            <Setter.Value>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0.28" />
+                            </Setter.Value>
+                        </Setter>
+                    </Trigger>
+                </Style.Triggers>
             </Style>
         </ResourceDictionary>
     </Application.Resources>

@@ -9,6 +9,9 @@ using EasyWin.Services;
 
 namespace EasyWin.ViewModels;
 
+/// <summary>主题选项(用于三态选择按钮)。</summary>
+public record ThemeChoice(string Label, ThemeMode Mode);
+
 /// <summary>关于页:版本信息、主题设置、数据目录。</summary>
 public partial class AboutViewModel : ObservableObject
 {
@@ -25,12 +28,36 @@ public partial class AboutViewModel : ObservableObject
 
     public string StorePath => AppPaths.ProfilesPath;
 
-    [ObservableProperty] private bool _isDarkTheme = SettingsStore.Theme;
+    public static IReadOnlyList<ThemeChoice> ThemeChoices { get; } =
+    [
+        new("跟随系统", ThemeMode.System),
+        new("浅色", ThemeMode.Light),
+        new("深色", ThemeMode.Dark),
+    ];
 
-    partial void OnIsDarkThemeChanged(bool value)
+    [ObservableProperty]
+    private ThemeChoice? _selectedTheme =
+        ThemeChoices.FirstOrDefault(c => c.Mode == SettingsStore.Mode) ?? ThemeChoices[2];
+
+    partial void OnSelectedThemeChanged(ThemeChoice? value)
     {
-        SettingsStore.Theme = value;
-        ApplicationThemeManager.Apply(value ? ApplicationTheme.Dark : ApplicationTheme.Light);
+        if (value == null) return;
+        SettingsStore.Mode = value.Mode;
+        ApplyCurrentTheme();
+    }
+
+    /// <summary>三态按钮共用命令,参数为模式名(System/Light/Dark)。</summary>
+    [RelayCommand]
+    private void SetTheme(string? mode)
+    {
+        if (!Enum.TryParse<ThemeMode>(mode, ignoreCase: true, out var parsed)) return;
+        SelectedTheme = ThemeChoices.First(c => c.Mode == parsed);
+    }
+
+    /// <summary>按当前设置应用主题(启动与切换共用)。</summary>
+    public static void ApplyCurrentTheme()
+    {
+        ApplicationThemeManager.Apply(SettingsStore.IsDark ? ApplicationTheme.Dark : ApplicationTheme.Light);
     }
 
     [RelayCommand]

@@ -42,7 +42,8 @@ public partial class RdpEditWindow : FluentWindow
             // 扫描端口:服务器栏带自定义端口就用它,否则 3389
             var (_, port) = RdpLauncher.ParseServer(ServerBox.Text);
 
-            var adapters = _network.GetAdapters()
+            // WMI 枚举网卡较慢,放后台线程,避免弹窗打开时卡 UI
+            var adapters = (await Task.Run(() => _network.GetAdapters()).ConfigureAwait(true))
                 .Where(a => a.IsConnected && a.IpAddress != null && a.SubnetMask != null)
                 .Select(a => (a.IpAddress!, a.SubnetMask!))
                 .ToList();

@@ -4,6 +4,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:controls="clr-namespace:EasyWin.Controls"
       mc:Ignorable="d"
       d:DesignHeight="700"
       d:DesignWidth="1000">
@@ -43,7 +44,8 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ui:Card Width="306" Height="248" Margin="0,0,12,12" Padding="16">
+                            <ui:Card Width="306" Height="248" Margin="0,0,12,12" Padding="16"
+                                     Style="{StaticResource LiftCard}">
                                 <DockPanel>
                                     <!-- 操作按钮固定底部,卡片统一高度 -->
                                     <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
@@ -97,12 +99,12 @@
                 </ItemsControl>
 
                 <!-- 空态 -->
-                <TextBlock
-                    Text="还没有配置方案,点击右上角「新建方案」或「从网卡导入」开始"
-                    HorizontalAlignment="Center" Margin="0,80,0,0"
-                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
+                <controls:EmptyState Symbol="Copy24"
+                                     Title="还没有配置方案"
+                                     Caption="点击右上角「新建方案」或「从网卡导入」,把常用 IP 配置保存下来,之后一键切换"
+                                     Margin="0,60,0,20">
+                    <controls:EmptyState.Style>
+                        <Style TargetType="controls:EmptyState">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
@@ -110,8 +112,8 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                    </controls:EmptyState.Style>
+                </controls:EmptyState>
 
                 <!-- 自动化规则 -->
                 <DockPanel Margin="0,20,0,10">
@@ -156,12 +158,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock
-                    Text="还没有自动化规则,点击「新建规则」实现连上指定 Wi-Fi 自动切换网络配置"
-                    HorizontalAlignment="Left" Margin="4,2,0,8"
-                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="12">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
+                <controls:EmptyState Symbol="Link24"
+                                     Title="还没有自动化规则"
+                                     Caption="点击右上角「新建规则」,连接到指定 Wi-Fi 时自动应用对应方案(需 EasyWin 常驻托盘)"
+                                     HorizontalAlignment="Center" Margin="0,16,0,12">
+                    <controls:EmptyState.Style>
+                        <Style TargetType="controls:EmptyState">
                             <Setter Property="Visibility" Value="Collapsed" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Rules.Count}" Value="0">
@@ -169,8 +171,8 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                    </controls:EmptyState.Style>
+                </controls:EmptyState>
             </StackPanel>
         </ScrollViewer>
 

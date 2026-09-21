@@ -64,7 +64,7 @@
 
 ```bash
 # 构建(需要 .NET 8+ SDK,SDK 9/10 也可编译 net8.0 目标)
-dotnet build src/EasyWin/EasyWin.sln
+dotnet build src/EasyWin/EasyWin.csproj
 
 # 运行
 src/EasyWin/bin/Debug/net8.0-windows/EasyWin.exe

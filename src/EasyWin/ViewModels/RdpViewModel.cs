@@ -23,12 +23,36 @@ public partial class RdpViewModel : ObservableObject
 
     public ObservableCollection<RdpProfile> Profiles { get; } = [];
 
+    /// <summary>第三方远程工具(向日葵/ToDesk 等),页面刷新时检测安装状态。</summary>
+    public ObservableCollection<RemoteToolInfo> Tools { get; } = [];
+
     [RelayCommand]
     public async Task RefreshAsync()
     {
         var profiles = await Task.Run(() => _store.Load()).ConfigureAwait(true);
         Profiles.Clear();
         foreach (var profile in profiles.OrderBy(p => p.Name, StringComparer.CurrentCulture)) Profiles.Add(profile);
+
+        var tools = await Task.Run(() => RemoteToolService.DetectAll()).ConfigureAwait(true);
+        Tools.Clear();
+        foreach (var tool in tools) Tools.Add(tool);
+    }
+
+    /// <summary>打开已安装的远程工具。</summary>
+    [RelayCommand]
+    private void OpenTool(RemoteToolInfo? tool)
+    {
+        if (tool == null) return;
+        var (ok, message) = RemoteToolService.Launch(tool);
+        if (ok) Toast.Success(message);
+        else Toast.Error(message);
+    }
+
+    /// <summary>打开工具官网。</summary>
+    [RelayCommand]
+    private void OpenToolWebsite(RemoteToolInfo? tool)
+    {
+        if (tool != null) RemoteToolService.OpenWebsite(tool);
     }
 
     [RelayCommand]

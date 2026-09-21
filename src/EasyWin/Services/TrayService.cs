@@ -19,6 +19,7 @@ public class TrayService : IDisposable
     private readonly WifiViewModel _wifi;
 
     private bool _hintShown;
+    private bool _disposed;
 
     public event Action? OpenRequested;
     public event Action? ExitRequested;
@@ -195,34 +196,54 @@ public class TrayService : IDisposable
 
     private async Task ApplyProfileFromTrayAsync(IpProfile profile)
     {
-        var (ok, message) = await Task.Run(() => _network.ApplyProfileAsync(profile)).ConfigureAwait(true);
-        ShowBalloon(ok ? "IP 方案已切换" : "切换失败", message);
+        // 菜单点击是 async void,异常必须就地捕获,否则会崩掉整个进程
+        try
+        {
+            var (ok, message) = await Task.Run(() => _network.ApplyProfileAsync(profile)).ConfigureAwait(true);
+            ShowBalloon(ok ? "IP 方案已切换" : "切换失败", message);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("托盘切换 IP 方案失败: " + ex.Message);
+        }
     }
 
     /// <summary>托盘连 Wi-Fi 不弹密码框,直接用本机已保存的配置;没保存过的到 Wi-Fi 页连接。</summary>
     private async Task ConnectWifiFromTrayAsync(string ssid)
     {
-        ShowBalloon("Wi-Fi", $"正在连接「{ssid}」…");
-        var (ok, message) = await Task.Run(() => WlanService.ConnectAsync(ssid, null)).ConfigureAwait(true);
-        if (!ok)
+        try
         {
-            ShowBalloon("连接失败", message);
-            return;
+            ShowBalloon("Wi-Fi", $"正在连接「{ssid}」…");
+            var (ok, message) = await Task.Run(() => WlanService.ConnectAsync(ssid, null)).ConfigureAwait(true);
+            if (!ok)
+            {
+                ShowBalloon("连接失败", message);
+                return;
+            }
+            var connected = await Task.Run(() => WlanService.WaitConnectedAsync(ssid)).ConfigureAwait(true);
+            ShowBalloon(connected ? "Wi-Fi 已连接" : "连接未完成",
+                connected
+                    ? ssid
+                    : $"「{ssid}」连接超时(该网络可能没保存过密码,请到 Wi-Fi 页连接一次)");
+            if (connected)
+                _ = _wifi.RefreshAsync();
         }
-        var connected = await Task.Run(() => WlanService.WaitConnectedAsync(ssid)).ConfigureAwait(true);
-        ShowBalloon(connected ? "Wi-Fi 已连接" : "连接未完成",
-            connected
-                ? ssid
-                : $"「{ssid}」连接超时(该网络可能没保存过密码,请到 Wi-Fi 页连接一次)");
-        if (connected)
-            _ = _wifi.RefreshAsync();
+        catch (Exception ex)
+        {
+            // 等待连接期间用户可能已退出应用(图标已释放),不能让异常逃出 async void
+            Log.Warn("托盘连接 Wi-Fi 失败: " + ex.Message);
+        }
     }
 
-    private void ShowBalloon(string title, string text) =>
+    private void ShowBalloon(string title, string text)
+    {
+        if (_disposed) return;
         _icon.ShowBalloonTip(3000, title, text, WinForms.ToolTipIcon.Info);
+    }
 
     public void Dispose()
     {
+        _disposed = true;
         _icon.Visible = false;
         _icon.Dispose();
     }

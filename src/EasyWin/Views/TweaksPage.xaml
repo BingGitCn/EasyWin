@@ -91,6 +91,37 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- 按供电状态自动切换 -->
+                    <StackPanel Margin="0,16,0,0">
+                        <DockPanel>
+                            <ui:ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding PowerAutoEnabled, Mode=TwoWay}"
+                                             ToolTip="开启后插拔电源时自动切换计划(需 EasyWin 常驻后台)" />
+                            <StackPanel>
+                                <TextBlock Text="按供电状态自动切换" FontSize="13" FontWeight="SemiBold" />
+                                <TextBlock Text="插电时自动使用「插电计划」,用电池时自动使用「电池计划」(需 EasyWin 常驻后台)"
+                                           Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid Margin="0,12,0,0" IsEnabled="{Binding PowerAutoEnabled}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,24,0">
+                                <TextBlock Style="{StaticResource FieldLabelText}" Text="接通电源时" />
+                                <ComboBox Width="240" ItemsSource="{Binding PowerPlans}"
+                                          SelectedValuePath="Guid" DisplayMemberPath="Name"
+                                          SelectedValue="{Binding AcPlanGuid, Mode=TwoWay}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Style="{StaticResource FieldLabelText}" Text="使用电池时" />
+                                <ComboBox Width="240" ItemsSource="{Binding PowerPlans}"
+                                          SelectedValuePath="Guid" DisplayMemberPath="Name"
+                                          SelectedValue="{Binding BatteryPlanGuid, Mode=TwoWay}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
                 </StackPanel>
             </ui:Card>
 

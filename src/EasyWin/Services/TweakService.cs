@@ -157,6 +157,15 @@ public static class TweakService
     public static async Task SetPowerPlanAsync(string planGuid) =>
         await CommandRunner.RunAsync("powercfg", "/setactive", planGuid).ConfigureAwait(false);
 
+    /// <summary>当前活动计划的 GUID(读取失败返回 null)。</summary>
+    public static async Task<string?> GetActivePlanGuidAsync()
+    {
+        var result = await CommandRunner.RunAsync("powercfg", "/getactivescheme").ConfigureAwait(false);
+        if (!result.Ok) return null;
+        var m = Regex.Match(result.Output, @"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})");
+        return m.Success ? m.Groups[1].Value : null;
+    }
+
     /// <summary>高性能方案在新系统上可能不存在,缺省时先复制再激活。</summary>
     public static async Task ActivateHighPerformanceAsync()
     {

@@ -16,6 +16,14 @@ public static class Toast
     public static void Show(string message, ToastType type = ToastType.Info)
     {
         Log.Info($"[Toast:{type}] {message}");
+        // 后台线程(如自动化规则)也会发 Toast,必须回到 UI 线程再触发,
+        // 否则处理器操作 WPF 控件会抛跨线程异常
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(() => ShowRequested?.Invoke(message, type));
+            return;
+        }
         ShowRequested?.Invoke(message, type);
     }
 

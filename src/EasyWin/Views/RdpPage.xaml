@@ -4,6 +4,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:controls="clr-namespace:EasyWin.Controls"
       mc:Ignorable="d"
       d:DesignHeight="700"
       d:DesignWidth="1000">
@@ -31,16 +32,18 @@
         </DockPanel>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <ItemsControl ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
-                        <WrapPanel ItemWidth="318" ItemHeight="220" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+            <StackPanel>
+                <ItemsControl ItemsSource="{Binding Profiles}" VerticalAlignment="Top">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- ItemWidth/ItemHeight 强制所有卡片格子等大 -->
+                            <WrapPanel ItemWidth="318" ItemHeight="220" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ui:Card Width="306" Height="208" Margin="0,0,12,12" Padding="16">
+                        <ui:Card Width="306" Height="208" Margin="0,0,12,12" Padding="16"
+                                 Style="{StaticResource LiftCard}">
                             <DockPanel>
                                 <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -98,16 +101,104 @@
                         </ui:Card>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ItemsControl>
+
+                <!-- 远程工具:第三方远控,已安装可直接打开,未安装可去官网下载 -->
+                <TextBlock Text="远程工具" Style="{StaticResource SectionTitleText}" Margin="0,20,0,0" />
+                <TextBlock Text="第三方远程控制工具,已安装的可直接打开,未安装可前往官网下载"
+                           Style="{StaticResource CaptionText}" Margin="0,2,0,10" />
+                <ItemsControl ItemsSource="{Binding Tools}" HorizontalAlignment="Left">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel ItemWidth="318" ItemHeight="220" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ui:Card Width="306" Height="208" Margin="0,0,12,12" Padding="16"
+                                     Style="{StaticResource LiftCard}">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                        <ui:Button DockPanel.Dock="Right" Content="官网" Icon="{ui:SymbolIcon Link24}"
+                                                   Appearance="Secondary" Padding="10,5"
+                                                   ToolTip="打开官网"
+                                                   Command="{Binding DataContext.OpenToolWebsiteCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                        <ui:Button Content="打开" Icon="{ui:SymbolIcon ArrowRight24}" Appearance="Primary"
+                                                   HorizontalAlignment="Left" Padding="14,5"
+                                                   IsEnabled="{Binding Installed}"
+                                                   ToolTip="启动本机已安装的程序"
+                                                   Command="{Binding DataContext.OpenToolCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}" />
+                                    </DockPanel>
+
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="42" Height="42" CornerRadius="8"
+                                                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                                <Grid>
+                                                    <Image Source="{Binding Icon}" Width="30" Height="30"
+                                                           Visibility="{Binding Icon, Converter={StaticResource NotNullToVis}}" />
+                                                    <ui:SymbolIcon Symbol="Desktop24" FontSize="20">
+                                                        <ui:SymbolIcon.Style>
+                                                            <Style TargetType="ui:SymbolIcon">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </ui:SymbolIcon.Style>
+                                                    </ui:SymbolIcon>
+                                                </Grid>
+                                            </Border>
+                                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Description}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                            <Border CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
+                                                    Background="#334CC38A"
+                                                    Visibility="{Binding Installed, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="已安装" FontSize="11" Foreground="#7ADFA9" />
+                                            </Border>
+                                            <Border CornerRadius="4" Padding="8,2"
+                                                    Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Installed}" Value="False">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="未安装" FontSize="11"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            </Border>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DockPanel>
+                            </ui:Card>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </ScrollViewer>
 
         <!-- 空态 -->
-        <TextBlock Grid.Row="1"
-                   Text="还没有连接方案,点击右上角「新建连接」保存常用的远程桌面配置"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="14">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
+        <controls:EmptyState Grid.Row="1"
+                             Symbol="Desktop24"
+                             Title="还没有远程桌面连接"
+                             Caption="点击右上角「新建连接」保存常用的 mstsc 配置(服务器/用户/分辨率),之后一键发起远程控制"
+                             VerticalAlignment="Top" Margin="0,80,0,0">
+            <controls:EmptyState.Style>
+                <Style TargetType="controls:EmptyState">
                     <Setter Property="Visibility" Value="Collapsed" />
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding Profiles.Count}" Value="0">
@@ -115,7 +206,7 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </TextBlock.Style>
-        </TextBlock>
+            </controls:EmptyState.Style>
+        </controls:EmptyState>
     </Grid>
 </Page>
