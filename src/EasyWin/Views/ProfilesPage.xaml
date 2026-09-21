@@ -114,6 +114,7 @@
                 <!-- 自动化规则 -->
                 <DockPanel Margin="0,20,0,10">
                     <ui:Button DockPanel.Dock="Right" Content="新建规则" Icon="{ui:SymbolIcon Add24}" Appearance="Secondary"
+                               VerticalAlignment="Center"
                                Command="{Binding NewRuleCommand}" />
                     <StackPanel>
                         <TextBlock Text="自动化规则" Style="{StaticResource SectionTitleText}" Margin="0" />
@@ -142,8 +143,10 @@
                                                    CommandParameter="{Binding}" />
                                     </StackPanel>
                                     <StackPanel VerticalAlignment="Center">
+                                        <!-- 不在 ui:Card 内,继承不到主题文字色,必须显式指定 -->
                                         <TextBlock Text="{Binding DisplayText}" FontSize="13" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis" />
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                     </StackPanel>
                                 </DockPanel>
                             </Border>

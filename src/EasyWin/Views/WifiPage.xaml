@@ -82,19 +82,17 @@
                 <TextBlock Text="已保存的 Wi-Fi 密码" Style="{StaticResource SectionTitleText}" Margin="0,16,0,10" />
                 <ui:Card Width="592" HorizontalAlignment="Left" Padding="18" Margin="0,0,0,24">
                     <StackPanel>
+                        <TextBlock Text="本机保存过密码的网络" Style="{StaticResource FieldLabelText}" />
                         <DockPanel Margin="0,0,0,10">
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                 <ui:Button Content="查看密码" Icon="{ui:SymbolIcon Eye24}" Appearance="Primary" Margin="0,0,8,0"
                                            Command="{Binding ShowSavedPasswordCommand}" />
                                 <ui:Button Content="复制" Icon="{ui:SymbolIcon Copy24}" Appearance="Secondary"
                                            Command="{Binding CopySavedPasswordCommand}" />
                             </StackPanel>
-                            <StackPanel>
-                                <TextBlock Text="本机保存过密码的网络" Style="{StaticResource FieldLabelText}" />
-                                <ComboBox Width="280" HorizontalAlignment="Left"
-                                          ItemsSource="{Binding SavedProfiles}"
-                                          SelectedItem="{Binding SelectedSavedProfile, Mode=TwoWay}" />
-                            </StackPanel>
+                            <ComboBox Width="280" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                      ItemsSource="{Binding SavedProfiles}"
+                                      SelectedItem="{Binding SelectedSavedProfile, Mode=TwoWay}" />
                         </DockPanel>
                         <TextBlock Text="{Binding SavedPasswordText}"
                                    FontFamily="Consolas" FontSize="15" FontWeight="SemiBold"
