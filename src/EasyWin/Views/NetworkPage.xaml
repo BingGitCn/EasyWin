@@ -198,7 +198,7 @@
 
         <!-- 忙碌遮罩 -->
         <Border Grid.ColumnSpan="3"
-                Background="#66000000"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <ui:ProgressRing Width="52" Height="52" IsIndeterminate="True" />
