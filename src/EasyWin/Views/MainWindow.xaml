@@ -62,6 +62,8 @@
                                        TargetPageType="{x:Type views:RdpPage}" />
                 <ui:NavigationViewItem Content="网络工具" Icon="{ui:SymbolIcon Link24}"
                                        TargetPageType="{x:Type views:NetToolsPage}" />
+                <ui:NavigationViewItem Content="网络诊断" Icon="{ui:SymbolIcon Pulse24}"
+                                       TargetPageType="{x:Type views:DiagnosticsPage}" />
                 <ui:NavigationViewItem Content="系统设置" Icon="{ui:SymbolIcon Settings24}"
                                        TargetPageType="{x:Type views:TweaksPage}" />
                 <ui:NavigationViewItem Content="清理" Icon="{ui:SymbolIcon Broom24}"

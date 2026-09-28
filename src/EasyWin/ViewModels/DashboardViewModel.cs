@@ -61,10 +61,25 @@ public partial class DashboardViewModel : ObservableObject
             ActivationText = await _system.GetActivationTextAsync().ConfigureAwait(true);
 
             UpdatePingNow();
+            _ = LoadPublicIpAsync();
         }
         catch (Exception ex)
         {
             Log.Error("加载系统信息失败", ex);
+        }
+    }
+
+    /// <summary>公网出口 IP(ipify 免费接口,失败静默显示占位,不打扰仪表盘)。</summary>
+    private async Task LoadPublicIpAsync()
+    {
+        try
+        {
+            using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
+            PublicIpText = (await http.GetStringAsync("https://api.ipify.org").ConfigureAwait(true)).Trim();
+        }
+        catch
+        {
+            PublicIpText = "获取失败";
         }
     }
 
@@ -244,6 +259,7 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private string _adapterCountText = "";
     [ObservableProperty] private string _internetText = "检测中…";
     [ObservableProperty] private bool _internetOk;
+    [ObservableProperty] private string _publicIpText = "…";
     [ObservableProperty] private string _computerName = Environment.MachineName;
     [ObservableProperty] private string _userName = Environment.UserName;
 

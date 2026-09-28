@@ -64,6 +64,18 @@
 | Edge / Chrome / Firefox 缓存 | 各 Profile 的网页缓存 / Code Cache / GPU 缓存,清理前请关浏览器 |
 | 最近使用记录 | 「最近使用的文件」列表与「运行」对话框历史 |
 
+### 🩺 网络诊断
+七大工具一页装齐(功能清单参考 [BornToBeRoot/NETworkManager](https://github.com/BornToBeRoot/NETworkManager),实现自写未用其代码):
+- **Ping 监视**:持续 ping + 实时延迟曲线,统计丢失率/平均/最小/最大
+- **路由跟踪**:TTL 递增逐跳探测,超时跳标注
+- **DNS 查询**:A/AAAA/CNAME/MX/TXT/NS 等记录类型(基于 DnsClient,MIT)
+- **端口扫描**:并发扫描远程主机端口,支持 `22,80,1000-2000` 混写,最多 4096 个
+- **HTTP 响应头**:查看 Web 服务器响应头与状态码
+- **本机网络状态**:ARP 表 / 活动 TCP 连接 / 监听端口,自动关联进程名
+- **子网计算器**:IP+掩码(点分或 /CIDR)→ 网段/广播/可用范围/主机数/IP 分类
+
+仪表盘同步显示公网出口 IP(ipify)。
+
 ### 🖥 远程桌面
 保存 mstsc 连接(服务器/用户/分辨率/管理模式),一键发起远程控制;勾选"记住凭据"后通过 Windows 凭据管理器免密登录(CredWrite 直写,密码不经过命令行),密码经 DPAPI 加密存储;支持连接方案导入导出(跨机器导入需重新输入密码)。
 
@@ -85,7 +97,7 @@ dotnet build src/EasyWin/EasyWin.csproj
 src/EasyWin/bin/Debug/net8.0-windows/EasyWin.exe
 
 # 直接跳转某页(也可用于自动化演示)
-EasyWin.exe --page=profiles   # network / profiles / nettools / tweaks / cleaner / launcher / about
+EasyWin.exe --page=profiles   # network / profiles / nettools / diag / tweaks / cleaner / launcher / about
 
 # 发布(依赖框架单文件 → dist\EasyWin.exe)
 tools\publish.bat
@@ -96,10 +108,11 @@ tools\publish.bat
 src/EasyWin/
 ├── Models/      NetworkAdapterInfo、IpProfile、AutomationRule、LaunchItem 等
 ├── Services/    NetworkService(WMI+netsh)、TweakService(注册表/服务/电源)、CleanerService(扫描/清理引擎)
+│                DiagnosticsService(Ping/路由跟踪/DNS 查询/端口扫描/子网计算)
 │                TrayService(托盘)、AutomationService(场景自动化)、PortLookup(端口占用)
 │                ProfileStore、SysProxyService、HostsService、SystemInfoService
 ├── ViewModels/  MVVM(CommunityToolkit.Mvvm),每页一个 VM
-├── Views/       FluentWindow 主窗体 + 10 个页面 + 方案/规则编辑窗口
+├── Views/       FluentWindow 主窗体 + 11 个页面 + 方案/规则编辑窗口
 └── Controls/    TweakCard 卡片控件
 ```
 

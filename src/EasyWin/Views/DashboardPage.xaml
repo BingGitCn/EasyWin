@@ -82,6 +82,11 @@
                             <TextBlock Text="{Binding InternetText}" Style="{StaticResource CaptionText}" />
                             <TextBlock Text="{Binding AdapterCountText}" Style="{StaticResource CaptionText}" Margin="12,0,0,0" />
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="公网" Style="{StaticResource CaptionText}" />
+                            <TextBlock Text="{Binding PublicIpText}" FontSize="12" FontWeight="SemiBold" Margin="6,0,0,0"
+                                       VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <TextBlock Text="↓" FontSize="12" Foreground="{DynamicResource TextFillColorTertiaryBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding DownloadText}" FontSize="12" FontWeight="SemiBold" Margin="4,0,0,0"
