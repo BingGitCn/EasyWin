@@ -43,7 +43,7 @@ public partial class DiagnosticsViewModel : ObservableObject
     public string PingButtonText => IsPinging ? "停止" : "开始";
 
     [RelayCommand]
-    private async Task TogglePingAsync()
+    private void TogglePing()
     {
         if (IsPinging)
         {
@@ -51,9 +51,16 @@ public partial class DiagnosticsViewModel : ObservableObject
             return;
         }
 
+        // 命令保持同步立即返回:异步 RelayCommand 执行期间会禁用按钮(CanExecute=false),
+        // 「停止」就永远点不到——循环放后台任务跑,按钮始终可点
+        var cts = new System.Threading.CancellationTokenSource();
+        _pingCts = cts;
         IsPinging = true;
-        _pingCts = new System.Threading.CancellationTokenSource();
-        var ct = _pingCts.Token;
+        _ = PingLoopAsync(cts.Token);
+    }
+
+    private async Task PingLoopAsync(System.Threading.CancellationToken ct)
+    {
         _latencies = [];
         var sent = 0;
         var lost = 0;
