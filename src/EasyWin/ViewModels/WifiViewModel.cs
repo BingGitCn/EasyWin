@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EasyWin.Models;
 using EasyWin.Services;
+using EasyWin.Views;
 
 namespace EasyWin.ViewModels;
 
@@ -148,6 +149,27 @@ public partial class WifiViewModel : ObservableObject
         {
             Toast.Error("复制失败:" + ex.Message);
         }
+    }
+
+    /// <summary>弹出已存 Wi-Fi 的连接二维码,手机扫码免密加入。</summary>
+    [RelayCommand]
+    private async Task ShowSavedQrCodeAsync()
+    {
+        if (SelectedSavedProfile == null)
+        {
+            await Ui.AlertAsync("未选择网络", "请先在下拉框选择一个已保存的 Wi-Fi。");
+            return;
+        }
+        var name = SelectedSavedProfile;
+        var password = await Task.Run(() => WlanService.GetSavedPassword(name)).ConfigureAwait(true);
+        if (password == null)
+        {
+            Toast.Error($"读取「{name}」的密码失败,无法生成二维码");
+            return;
+        }
+
+        var owner = System.Windows.Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
+        new WlanQrWindow(name, password) { Owner = owner }.ShowDialog();
     }
 
     /// <summary>一键切换到指定 Wi-Fi。</summary>

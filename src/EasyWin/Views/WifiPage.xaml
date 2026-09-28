@@ -53,7 +53,7 @@
                     Style="{StaticResource SectionTitleText}"
                     Text="已保存的 Wi-Fi 密码" />
                 <ui:Card
-                    Width="592"
+                    Width="660"
                     Margin="0,0,0,24"
                     Padding="18"
                     HorizontalAlignment="Left">
@@ -65,19 +65,26 @@
                                 DockPanel.Dock="Right"
                                 Orientation="Horizontal">
                                 <ui:Button
-                                    Margin="8,0,8,0"
+                                    Margin="0,0,8,0"
                                     Appearance="Primary"
                                     Command="{Binding ShowSavedPasswordCommand}"
                                     Content="查看密码"
                                     Icon="{ui:SymbolIcon Eye24}" />
                                 <ui:Button
+                                    Margin="0,0,8,0"
                                     Appearance="Secondary"
                                     Command="{Binding CopySavedPasswordCommand}"
                                     Content="复制"
                                     Icon="{ui:SymbolIcon Copy24}" />
+                                <ui:Button
+                                    Appearance="Secondary"
+                                    Command="{Binding ShowSavedQrCodeCommand}"
+                                    Content="二维码"
+                                    Icon="{ui:SymbolIcon QrCode24}"
+                                    ToolTip="生成连接二维码,手机扫码免密加入" />
                             </StackPanel>
                             <ComboBox
-                                Width="330"
+                                Width="280"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 ItemsSource="{Binding SavedProfiles}"
