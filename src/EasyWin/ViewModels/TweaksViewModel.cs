@@ -16,7 +16,7 @@ public partial class TweakCardViewModel : ObservableObject
 
     public TweakCardViewModel(string title, string description, string symbol,
         Func<bool> check, Func<bool, Task<string?>> apply, string applyText, string restoreText, Action refresh,
-        Func<Task>? promptAfterApply = null)
+        Func<Task>? promptAfterApply = null, bool risky = false)
     {
         Title = title;
         Description = description;
@@ -27,6 +27,7 @@ public partial class TweakCardViewModel : ObservableObject
         RestoreText = restoreText;
         _refresh = refresh;
         PromptAfterApply = promptAfterApply;
+        IsRisky = risky;
         ReloadState(silent: true);
     }
 
@@ -35,6 +36,9 @@ public partial class TweakCardViewModel : ObservableObject
     public string Symbol { get; }
     public string ApplyText { get; }
     public string RestoreText { get; }
+
+    /// <summary>高风险调整(关闭安全防护类),应用前需二次确认,卡片带「高危」角标。</summary>
+    public bool IsRisky { get; }
 
     /// <summary>应用成功后的附加提示(如去箭头后询问是否重启资源管理器)。</summary>
     public Func<Task>? PromptAfterApply { get; }
@@ -70,10 +74,12 @@ public partial class TweakCardViewModel : ObservableObject
     public async Task ToggleAsync()
     {
         if (IsBusy) return;
+        var target = !IsApplied;
+        if (target && IsRisky && !await Ui.ConfirmAsync($"高危调整:{Title}",
+                "此调整会关闭系统安全防护,确定继续吗?", Description).ConfigureAwait(true)) return;
         IsBusy = true;
         try
         {
-            var target = !IsApplied;
             var warning = await Task.Run(() => _apply.Invoke(target)).ConfigureAwait(true);
             _refresh();
             ReloadState();
@@ -98,7 +104,7 @@ public partial class TweakCardViewModel : ObservableObject
     }
 }
 
-/// <summary>系统设置页:更新控制、桌面外观、性能与安全。</summary>
+/// <summary>系统设置页:更新、资源管理器、任务栏、隐私、系统与安全、电源计划。</summary>
 public partial class TweaksViewModel : ObservableObject
 {
     private readonly NetworkService _network;
@@ -109,6 +115,7 @@ public partial class TweaksViewModel : ObservableObject
         _network = network;
         _powerAuto = powerAuto;
 
+        // ---------- 系统更新 ----------
         UpdateSection =
         [
             new TweakCardViewModel("禁用 Windows 自动更新",
@@ -119,23 +126,163 @@ public partial class TweaksViewModel : ObservableObject
                 () => { }),
         ];
 
-        AppearanceSection =
-        [
-            new TweakCardViewModel("去除快捷方式小箭头",
+        // ---------- 资源管理器 ----------
+        var explorer = new List<TweakCardViewModel>
+        {
+            new("去除快捷方式小箭头",
                 "修改 Shell Icons 注册表项,生效需重启资源管理器。",
                 "Link24", TweakService.IsShortcutArrowHidden,
                 async target => { TweakService.SetShortcutArrowHidden(target); return (string?)null; },
                 "去箭头", "恢复箭头",
                 () => { }, promptAfterApply: AskRestartExplorerAsync),
-            new TweakCardViewModel("隐藏「快捷方式」字样",
+            new("隐藏「快捷方式」字样",
                 "新建快捷方式时不再自动添加「- 快捷方式」后缀。",
                 "Edit24", TweakService.IsShortcutPrefixHidden,
                 async target => { TweakService.SetShortcutPrefixHidden(target); return (string?)null; },
                 "隐藏字样", "恢复字样",
                 () => { }),
+            new("显示文件扩展名",
+                "资源管理器显示已知文件类型的扩展名(如 .txt / .jpg),避免伪装成文档的可执行文件误导。",
+                "Tag24", TweakService.IsFileExtensionShown,
+                async target => { TweakService.SetFileExtensionShown(target); return (string?)null; },
+                "显示扩展名", "隐藏扩展名",
+                () => { }),
+            new("显示隐藏文件",
+                "资源管理器显示隐藏属性的文件与文件夹。",
+                "Eye24", TweakService.IsHiddenFilesShown,
+                async target => { TweakService.SetHiddenFilesShown(target); return (string?)null; },
+                "显示隐藏", "隐藏隐藏项",
+                () => { }),
+            new("隐藏「3D 对象」文件夹",
+                "从此电脑中移除几乎用不到的「3D 对象」文件夹,生效需重启资源管理器。",
+                "Folder24", TweakService.Is3DObjectsHidden,
+                async target => { TweakService.Set3DObjectsHidden(target); return (string?)null; },
+                "隐藏 3D", "恢复 3D",
+                () => { }, promptAfterApply: AskRestartExplorerAsync),
+            new("右键「管理员取得所有权」",
+                "在文件/文件夹右键菜单中添加一键取得所有权的入口(takeown + icacls)。",
+                "Key24", TweakService.IsTakeOwnershipMenuEnabled,
+                async target => { TweakService.SetTakeOwnershipMenu(target); return (string?)null; },
+                "添加菜单", "移除菜单",
+                () => { }),
+            new("右键「在此处打开 CMD」",
+                "在文件夹背景右键菜单中添加命令行入口,自动定位到当前目录。",
+                "Code24", TweakService.IsCmdHereMenuEnabled,
+                async target => { TweakService.SetCmdHereMenu(target); return (string?)null; },
+                "添加菜单", "移除菜单",
+                () => { }),
+        };
+        if (TweakService.IsWin11)
+        {
+            explorer.Insert(4, new TweakCardViewModel("恢复 Win10 经典右键菜单",
+                "Win11 新菜单换回 Win10 完整版(一次显示全部菜单项),生效需重启资源管理器。",
+                "List24", TweakService.IsClassicContextMenuEnabled,
+                async target => { TweakService.SetClassicContextMenu(target); return (string?)null; },
+                "经典菜单", "换回 Win11",
+                () => { }, promptAfterApply: AskRestartExplorerAsync));
+        }
+        ExplorerSection = new ObservableCollection<TweakCardViewModel>(explorer);
+
+        // ---------- 任务栏与开始菜单 ----------
+        var taskbar = new List<TweakCardViewModel>
+        {
+            new("任务栏时钟显示秒数",
+                "任务栏时钟以「时:分:秒」显示,写入后广播设置,未生效时可重启资源管理器。",
+                "Clock24", TweakService.IsClockSecondsShown,
+                async target => { TweakService.SetClockSecondsShown(target); return (string?)null; },
+                "显示秒数", "隐藏秒数",
+                () => { }),
+            new("隐藏任务栏搜索框",
+                "隐藏任务栏上的搜索框/搜索按钮,还你干净的任务栏。",
+                "Search24", TweakService.IsTaskbarSearchHidden,
+                async target => { TweakService.SetTaskbarSearchHidden(target); return (string?)null; },
+                "隐藏搜索", "恢复搜索",
+                () => { }),
+            new("隐藏「任务视图」按钮",
+                "隐藏任务栏上的任务视图(多桌面切换)按钮。",
+                "SquareMultiple24", TweakService.IsTaskViewHidden,
+                async target => { TweakService.SetTaskViewHidden(target); return (string?)null; },
+                "隐藏任务视图", "恢复任务视图",
+                () => { }),
+            new("关闭开始菜单「推荐项目」",
+                "不再在开始菜单显示推荐的应用/文件与推广内容。",
+                "MegaphoneLoud24", TweakService.IsStartRecommendationsHidden,
+                async target => { TweakService.SetStartRecommendationsHidden(target); return (string?)null; },
+                "关闭推荐", "恢复推荐",
+                () => { }),
+        };
+        if (TweakService.IsWin11)
+        {
+            taskbar.Insert(0, new TweakCardViewModel("任务栏图标靠左",
+                "Win11 默认居中的任务栏图标改回 Win10 式靠左排列。",
+                "AlignLeft24", TweakService.IsTaskbarLeft,
+                async target => { TweakService.SetTaskbarLeft(target); return (string?)null; },
+                "靠左对齐", "居中对齐",
+                () => { }));
+            taskbar.Add(new TweakCardViewModel("隐藏「小组件」按钮",
+                "隐藏任务栏左侧的天气/资讯小组件入口。",
+                "WeatherSunny24", TweakService.IsWidgetsHidden,
+                async target => { TweakService.SetWidgetsHidden(target); return (string?)null; },
+                "隐藏小组件", "恢复小组件",
+                () => { }));
+            taskbar.Add(new TweakCardViewModel("隐藏「聊天 / Copilot」按钮",
+                "隐藏任务栏上的 Teams 聊天与 Copilot 按钮(不同版本显示其一)。",
+                "Chat24", TweakService.IsChatCopilotHidden,
+                async target => { TweakService.SetChatCopilotHidden(target); return (string?)null; },
+                "隐藏按钮", "恢复按钮",
+                () => { }));
+        }
+        TaskbarSection = new ObservableCollection<TweakCardViewModel>(taskbar);
+
+        // ---------- 隐私 ----------
+        PrivacySection =
+        [
+            new TweakCardViewModel("关闭遥测与诊断数据",
+                "组策略 AllowTelemetry=0 + 禁用 DiagTrack/dmwappushservice,Windows 不再上传使用数据。",
+                "CloudArrowUp24", TweakService.IsTelemetryDisabled,
+                async target => await Task.Run(() => TweakService.SetTelemetryDisabled(target)),
+                "关闭遥测", "恢复遥测",
+                () => { }),
+            new("禁用广告 ID",
+                "应用无法通过广告标识符关联你的使用习惯,系统与应用内个性化广告随之减少。",
+                "Target24", TweakService.IsAdvertisingIdDisabled,
+                async target => { TweakService.SetAdvertisingIdDisabled(target); return (string?)null; },
+                "禁用广告 ID", "恢复广告 ID",
+                () => { }),
+            new("禁用位置跟踪",
+                "组策略禁用系统定位服务,应用无法获取地理位置。",
+                "Location24", TweakService.IsLocationTrackingDisabled,
+                async target => { TweakService.SetLocationTrackingDisabled(target); return (string?)null; },
+                "禁用定位", "恢复定位",
+                () => { }),
+            new("禁用活动历史记录",
+                "不采集、不上传应用与浏览活动时间线(EnableActivityFeed=0)。",
+                "History24", TweakService.IsActivityHistoryDisabled,
+                async target => { TweakService.SetActivityHistoryDisabled(target); return (string?)null; },
+                "禁用活动历史", "恢复活动历史",
+                () => { }),
+            new("禁用 Cortana",
+                "组策略关闭 Cortana 语音助手与其数据收集。",
+                "Mic24", TweakService.IsCortanaDisabled,
+                async target => { TweakService.SetCortanaDisabled(target); return (string?)null; },
+                "禁用 Cortana", "恢复 Cortana",
+                () => { }),
+            new("禁用错误报告",
+                "不再向微软发送 Windows 错误报告(WER)。",
+                "Bug24", TweakService.IsErrorReportingDisabled,
+                async target => { TweakService.SetErrorReportingDisabled(target); return (string?)null; },
+                "禁用报告", "恢复报告",
+                () => { }),
+            new("搜索仅显示本地结果",
+                "开始菜单搜索禁用 Bing 网页建议,输入内容不再发送到微软服务器(建议重启资源管理器生效)。",
+                "DocumentSearch24", TweakService.IsWebSearchSuggestionsDisabled,
+                async target => { TweakService.SetWebSearchSuggestionsDisabled(target); return (string?)null; },
+                "仅本地搜索", "恢复网页搜索",
+                () => { }),
         ];
 
-        PerformanceSection =
+        // ---------- 系统与安全 ----------
+        SystemSection =
         [
             new TweakCardViewModel("启用远程桌面",
                 "允许其他设备通过远程桌面连接本机(家庭版不支持作为被控端)。",
@@ -149,18 +296,50 @@ public partial class TweaksViewModel : ObservableObject
                 async target => { TweakService.SetBestPerformance(target); return (string?)null; },
                 "最佳性能", "恢复默认",
                 () => { }),
+            new TweakCardViewModel("禁用休眠与快速启动",
+                "powercfg /h off,同时关闭基于休眠的「快速启动」,适合双系统/频繁重启的机器,并可释放 hiberfil.sys 空间。",
+                "Moon24", TweakService.IsHibernateDisabled,
+                async target => { await TweakService.SetHibernateDisabledAsync(target); return (string?)null; },
+                "禁用休眠", "恢复休眠",
+                () => { }),
+            new TweakCardViewModel("关闭自动播放",
+                "插入 U 盘/移动硬盘不再自动运行,切断 Autorun 病毒传播途径。",
+                "Play24", TweakService.IsAutoplayDisabled,
+                async target => { TweakService.SetAutoplayDisabled(target); return (string?)null; },
+                "关闭自动播放", "开启自动播放",
+                () => { }),
             new TweakCardViewModel("开启防火墙",
                 "域/专用/公用全部配置文件的防火墙。仅建议在受信任的内网环境临时关闭,用完记得开回来!",
                 "Shield24", TweakService.IsFirewallEnabled,
                 async target => { await TweakService.SetFirewallAsync(target); return (string?)null; },
                 "开启防火墙", "关闭防火墙",
-                () => { }),
+                () => { }, risky: true),
+            new TweakCardViewModel("禁用 SmartScreen",
+                "关闭应用与下载文件的安全筛选,运行陌生程序不再被拦截。有安全风险,一般不建议关闭!",
+                "ShieldCheckmark24", TweakService.IsSmartScreenDisabled,
+                async target => { TweakService.SetSmartScreenDisabled(target); return (string?)null; },
+                "禁用 SmartScreen", "恢复 SmartScreen",
+                () => { }, risky: true),
+            new TweakCardViewModel("禁用内存完整性",
+                "关闭基于虚拟化的 HVCI 内核完整性保护,部分老驱动/游戏反作弊兼容性更好,重启后生效。有安全风险!",
+                "LockClosed24", TweakService.IsMemoryIntegrityDisabled,
+                async target => { TweakService.SetMemoryIntegrityDisabled(target); return (string?)null; },
+                "禁用内存完整性", "恢复内存完整性",
+                () => { }, risky: true),
+            new TweakCardViewModel("禁用系统还原",
+                "组策略 DisableSR=1 关闭系统还原点功能并腾出磁盘空间。关闭后将无法用还原点回滚,慎用!",
+                "ArrowUndo24", TweakService.IsSystemRestoreDisabled,
+                async target => { TweakService.SetSystemRestoreDisabled(target); return (string?)null; },
+                "禁用系统还原", "恢复系统还原",
+                () => { }, risky: true),
         ];
     }
 
     public ObservableCollection<TweakCardViewModel> UpdateSection { get; }
-    public ObservableCollection<TweakCardViewModel> AppearanceSection { get; }
-    public ObservableCollection<TweakCardViewModel> PerformanceSection { get; }
+    public ObservableCollection<TweakCardViewModel> ExplorerSection { get; }
+    public ObservableCollection<TweakCardViewModel> TaskbarSection { get; }
+    public ObservableCollection<TweakCardViewModel> PrivacySection { get; }
+    public ObservableCollection<TweakCardViewModel> SystemSection { get; }
 
     public ObservableCollection<PowerPlan> PowerPlans { get; } = [];
 
@@ -202,7 +381,8 @@ public partial class TweaksViewModel : ObservableObject
         PowerPlans.Clear();
         foreach (var plan in plans) PowerPlans.Add(plan);
         ActivePlan = plans.FirstOrDefault(p => p.IsActive);
-        foreach (var card in UpdateSection.Concat(AppearanceSection).Concat(PerformanceSection))
+        foreach (var card in UpdateSection.Concat(ExplorerSection).Concat(TaskbarSection)
+                     .Concat(PrivacySection).Concat(SystemSection))
             card.ReloadState();
     }
 
@@ -251,7 +431,7 @@ public partial class TweaksViewModel : ObservableObject
 
     private async Task AskRestartExplorerAsync()
     {
-        if (await Ui.ConfirmAsync("需要重启资源管理器", "去箭头等外观修改需要重启资源管理器才能看到效果,现在重启吗?",
+        if (await Ui.ConfirmAsync("需要重启资源管理器", "去箭头、经典菜单等外观修改需要重启资源管理器才能看到效果,现在重启吗?",
             "桌面和任务栏会短暂消失再恢复。"))
         {
             await Task.Run(TweakService.RestartExplorer).ConfigureAwait(true);

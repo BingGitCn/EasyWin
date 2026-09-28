@@ -23,8 +23,8 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Text="桌面外观" Style="{StaticResource SectionTitleText}" />
-            <ItemsControl ItemsSource="{Binding AppearanceSection}">
+            <TextBlock Text="资源管理器" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding ExplorerSection}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <controls:TweakCard />
@@ -35,13 +35,31 @@
                 <DockPanel>
                     <ui:Button DockPanel.Dock="Right" Content="重启资源管理器" Icon="{ui:SymbolIcon ArrowSync24}"
                                Appearance="Secondary" Command="{Binding RestartExplorerCommand}" />
-                    <TextBlock Text="快捷方式小箭头等外观修改需要重启资源管理器才能生效"
+                    <TextBlock Text="小箭头、经典右键菜单等修改需要重启资源管理器才能生效"
                                Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
                 </DockPanel>
             </ui:Card>
 
-            <TextBlock Text="性能与安全" Style="{StaticResource SectionTitleText}" />
-            <ItemsControl ItemsSource="{Binding PerformanceSection}">
+            <TextBlock Text="任务栏与开始菜单" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding TaskbarSection}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:TweakCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="隐私" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding PrivacySection}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:TweakCard />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="系统与安全" Style="{StaticResource SectionTitleText}" />
+            <ItemsControl ItemsSource="{Binding SystemSection}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <controls:TweakCard />

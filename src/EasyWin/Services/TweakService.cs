@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 using EasyWin.Models;
@@ -7,6 +8,42 @@ namespace EasyWin.Services;
 /// <summary>系统调整项(Tweak)的检测与应用:注册表、服务、电源计划、资源管理器。</summary>
 public static class TweakService
 {
+    // ---------------- 通用工具 ----------------
+
+    private const string AdvancedPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced";
+
+    /// <summary>Win11 = NT 内核 Build 22000+。任务栏对齐/小组件/经典右键菜单等卡片仅对 Win11 有意义。</summary>
+    public static bool IsWin11 => Environment.OSVersion.Version.Build >= 22000;
+
+    private static int? Dword(RegistryKey root, string path, string name)
+    {
+        using var key = root.OpenSubKey(path);
+        return key?.GetValue(name) as int?;
+    }
+
+    private static void WriteDword(RegistryKey root, string path, string name, int value)
+    {
+        using var key = root.CreateSubKey(path);
+        key.SetValue(name, value, RegistryValueKind.DWord);
+    }
+
+    private static void DeleteValue(RegistryKey root, string path, string name)
+    {
+        using var key = root.OpenSubKey(path, writable: true) ?? root.CreateSubKey(path);
+        key.DeleteValue(name, throwOnMissingValue: false);
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, string? lParam,
+        uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+
+    /// <summary>广播设置变更(WM_SETTINGCHANGE),让任务栏/资源管理器的部分注册表修改免重启生效。</summary>
+    private static void BroadcastSettingChange()
+    {
+        SendMessageTimeout(new IntPtr(0xFFFF) /*HWND_BROADCAST*/, 0x001A /*WM_SETTINGCHANGE*/, UIntPtr.Zero,
+            "Tray Settings", 0x0002 /*SMTO_ABORTIFHUNG*/, 2000, out _);
+    }
+
     // ---------------- Windows 更新 ----------------
 
     private const string UpdatePolicyKey = @"SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU";
@@ -44,14 +81,14 @@ public static class TweakService
         return warning;
     }
 
-    private static void TrySetServiceStart(string serviceName, int startValue, ref string? warning)
+    private static void TrySetServiceStart(string serviceName, int startValue, ref string? warning, bool warnIfMissing = true)
     {
         try
         {
             using var key = Registry.LocalMachine.OpenSubKey($"{ServicesKey}\\{serviceName}", writable: true);
             if (key == null)
             {
-                warning ??= $"{serviceName} 服务不存在";
+                if (warnIfMissing) warning ??= $"{serviceName} 服务不存在";
                 return;
             }
             key.SetValue("Start", startValue, RegistryValueKind.DWord);
@@ -181,6 +218,366 @@ public static class TweakService
     }
 
     // ---------------- 资源管理器 ----------------
+
+    /// <summary>显示文件扩展名(HideFileExt=0)。写入后广播设置,通常立即生效。</summary>
+    public static bool IsFileExtensionShown() => Dword(Registry.CurrentUser, AdvancedPath, "HideFileExt") == 0;
+
+    public static void SetFileExtensionShown(bool show)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "HideFileExt", show ? 0 : 1);
+        BroadcastSettingChange();
+    }
+
+    /// <summary>显示隐藏文件(Hidden=1,默认 2)。</summary>
+    public static bool IsHiddenFilesShown() => Dword(Registry.CurrentUser, AdvancedPath, "Hidden") == 1;
+
+    public static void SetHiddenFilesShown(bool show)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "Hidden", show ? 1 : 2);
+        BroadcastSettingChange();
+    }
+
+    private const string NameSpace3DKey =
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}";
+
+    /// <summary>隐藏「3D 对象」文件夹:删除 This PC 下的 NameSpace 注册表项(需重启资源管理器)。</summary>
+    public static bool Is3DObjectsHidden() => Registry.LocalMachine.OpenSubKey(NameSpace3DKey) == null;
+
+    public static void Set3DObjectsHidden(bool hidden)
+    {
+        if (hidden)
+            Registry.LocalMachine.DeleteSubKeyTree(NameSpace3DKey, throwOnMissingSubKey: false);
+        else
+            Registry.LocalMachine.CreateSubKey(NameSpace3DKey);
+    }
+
+    private const string ClassicContextMenuKey =
+        @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32";
+
+    /// <summary>Win11 恢复 Win10 经典右键菜单:注册旧版上下文菜单 COM 重定向,默认值为空字符串。</summary>
+    public static bool IsClassicContextMenuEnabled() => Registry.CurrentUser.OpenSubKey(ClassicContextMenuKey) != null;
+
+    public static void SetClassicContextMenu(bool enable)
+    {
+        if (enable)
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(ClassicContextMenuKey);
+            key.SetValue(string.Empty, string.Empty, RegistryValueKind.String);
+        }
+        else
+        {
+            Registry.CurrentUser.DeleteSubKeyTree(
+                @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}", throwOnMissingSubKey: false);
+        }
+    }
+
+    private const string TakeOwnershipFileKey = @"*\shell\TakeOwnership";
+    private const string TakeOwnershipDirKey = @"Directory\shell\TakeOwnership";
+
+    private const string TakeOwnershipFileCommand =
+        @"cmd.exe /c takeown /f ""%1"" && icacls ""%1"" /grant *S-1-5-32-544:F";
+    private const string TakeOwnershipDirCommand =
+        @"cmd.exe /c takeown /f ""%1"" /r /d y && icacls ""%1"" /grant *S-1-5-32-544:F /t";
+
+    /// <summary>右键菜单「管理员取得所有权」(文件+目录)。用 Administrators 组 SID,不受系统语言影响。</summary>
+    public static bool IsTakeOwnershipMenuEnabled() => Registry.ClassesRoot.OpenSubKey(TakeOwnershipFileKey) != null;
+
+    public static void SetTakeOwnershipMenu(bool enable)
+    {
+        if (enable)
+        {
+            using (var key = Registry.ClassesRoot.CreateSubKey(TakeOwnershipFileKey))
+            {
+                key.SetValue(string.Empty, "管理员取得所有权");
+                key.SetValue("NoWorkingDirectory", string.Empty);
+                using var cmd = key.CreateSubKey("command");
+                cmd.SetValue(string.Empty, TakeOwnershipFileCommand);
+            }
+            using (var key = Registry.ClassesRoot.CreateSubKey(TakeOwnershipDirKey))
+            {
+                key.SetValue(string.Empty, "管理员取得所有权");
+                key.SetValue("NoWorkingDirectory", string.Empty);
+                using var cmd = key.CreateSubKey("command");
+                cmd.SetValue(string.Empty, TakeOwnershipDirCommand);
+            }
+        }
+        else
+        {
+            Registry.ClassesRoot.DeleteSubKeyTree(TakeOwnershipFileKey, throwOnMissingSubKey: false);
+            Registry.ClassesRoot.DeleteSubKeyTree(TakeOwnershipDirKey, throwOnMissingSubKey: false);
+        }
+    }
+
+    private const string CmdHereKey = @"Directory\Background\shell\OpenCmdHere";
+
+    /// <summary>右键菜单「在此处打开 CMD」(文件夹背景,pushd 到当前目录)。</summary>
+    public static bool IsCmdHereMenuEnabled() => Registry.ClassesRoot.OpenSubKey(CmdHereKey) != null;
+
+    public static void SetCmdHereMenu(bool enable)
+    {
+        if (enable)
+        {
+            using var key = Registry.ClassesRoot.CreateSubKey(CmdHereKey);
+            key.SetValue(string.Empty, "在此处打开 CMD");
+            key.SetValue("Icon", "cmd.exe");
+            using var cmd = key.CreateSubKey("command");
+            cmd.SetValue(string.Empty, @"cmd.exe /s /k pushd ""%V""");
+        }
+        else
+        {
+            Registry.ClassesRoot.DeleteSubKeyTree(CmdHereKey, throwOnMissingSubKey: false);
+        }
+    }
+
+    // ---------------- 任务栏与开始菜单 ----------------
+
+    /// <summary>任务栏图标靠左(TaskbarAl=0,默认居中)。仅 Win11 有效。</summary>
+    public static bool IsTaskbarLeft() => Dword(Registry.CurrentUser, AdvancedPath, "TaskbarAl") == 0;
+
+    public static void SetTaskbarLeft(bool left)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "TaskbarAl", left ? 0 : 1);
+        BroadcastSettingChange();
+    }
+
+    /// <summary>任务栏时钟显示秒(ShowSecondsInSystemClock=1)。</summary>
+    public static bool IsClockSecondsShown() => Dword(Registry.CurrentUser, AdvancedPath, "ShowSecondsInSystemClock") == 1;
+
+    public static void SetClockSecondsShown(bool show)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "ShowSecondsInSystemClock", show ? 1 : 0);
+        BroadcastSettingChange();
+    }
+
+    private const string SearchKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Search";
+
+    /// <summary>隐藏任务栏搜索框/按钮(SearchboxTaskbarMode=0;1=图标,2=搜索框)。</summary>
+    public static bool IsTaskbarSearchHidden() => Dword(Registry.CurrentUser, SearchKeyPath, "SearchboxTaskbarMode") == 0;
+
+    public static void SetTaskbarSearchHidden(bool hidden)
+    {
+        WriteDword(Registry.CurrentUser, SearchKeyPath, "SearchboxTaskbarMode", hidden ? 0 : IsWin11 ? 1 : 2);
+        BroadcastSettingChange();
+    }
+
+    /// <summary>隐藏任务栏「任务视图」按钮(ShowTaskViewButton=0)。</summary>
+    public static bool IsTaskViewHidden() => Dword(Registry.CurrentUser, AdvancedPath, "ShowTaskViewButton") == 0;
+
+    public static void SetTaskViewHidden(bool hidden)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "ShowTaskViewButton", hidden ? 0 : 1);
+        BroadcastSettingChange();
+    }
+
+    /// <summary>隐藏任务栏「小组件」按钮(TaskbarDa=0)。仅 Win11。</summary>
+    public static bool IsWidgetsHidden() => Dword(Registry.CurrentUser, AdvancedPath, "TaskbarDa") == 0;
+
+    public static void SetWidgetsHidden(bool hidden)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "TaskbarDa", hidden ? 0 : 1);
+        BroadcastSettingChange();
+    }
+
+    /// <summary>隐藏任务栏「聊天 / Copilot」按钮(TaskbarMn=0 + ShowCopilotButton=0,不同版本按钮其一)。</summary>
+    public static bool IsChatCopilotHidden() =>
+        Dword(Registry.CurrentUser, AdvancedPath, "TaskbarMn") == 0
+        && Dword(Registry.CurrentUser, AdvancedPath, "ShowCopilotButton") is null or 0;
+
+    public static void SetChatCopilotHidden(bool hidden)
+    {
+        WriteDword(Registry.CurrentUser, AdvancedPath, "TaskbarMn", hidden ? 0 : 1);
+        if (hidden) WriteDword(Registry.CurrentUser, AdvancedPath, "ShowCopilotButton", 0);
+        else DeleteValue(Registry.CurrentUser, AdvancedPath, "ShowCopilotButton");
+        BroadcastSettingChange();
+    }
+
+    private const string ContentDeliveryPath = @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
+
+    /// <summary>关闭开始菜单「推荐项目/建议」广告:Win11 走 Start_IrisRecommendations,Win10 走内容投递管理器。</summary>
+    public static bool IsStartRecommendationsHidden() => IsWin11
+        ? Dword(Registry.CurrentUser, AdvancedPath, "Start_IrisRecommendations") == 0
+        : Dword(Registry.CurrentUser, ContentDeliveryPath, "SystemPaneSuggestionsEnabled") == 0;
+
+    public static void SetStartRecommendationsHidden(bool hidden)
+    {
+        if (IsWin11)
+        {
+            WriteDword(Registry.CurrentUser, AdvancedPath, "Start_IrisRecommendations", hidden ? 0 : 1);
+        }
+        else
+        {
+            if (hidden)
+            {
+                WriteDword(Registry.CurrentUser, ContentDeliveryPath, "SystemPaneSuggestionsEnabled", 0);
+                WriteDword(Registry.CurrentUser, ContentDeliveryPath, "SubscribedContent-338388Enabled", 0);
+                WriteDword(Registry.CurrentUser, ContentDeliveryPath, "SubscribedContent-338389Enabled", 0);
+            }
+            else
+            {
+                DeleteValue(Registry.CurrentUser, ContentDeliveryPath, "SystemPaneSuggestionsEnabled");
+                DeleteValue(Registry.CurrentUser, ContentDeliveryPath, "SubscribedContent-338388Enabled");
+                DeleteValue(Registry.CurrentUser, ContentDeliveryPath, "SubscribedContent-338389Enabled");
+            }
+        }
+        BroadcastSettingChange();
+    }
+
+    // ---------------- 隐私 ----------------
+
+    private const string DataCollectionPath = @"SOFTWARE\Policies\Microsoft\Windows\DataCollection";
+
+    /// <summary>关闭遥测:组策略 AllowTelemetry=0(Pro/Home 实际落到最低档「必需」)+ 禁用 DiagTrack/dmwappushservice。</summary>
+    public static bool IsTelemetryDisabled() => Dword(Registry.LocalMachine, DataCollectionPath, "AllowTelemetry") == 0;
+
+    public static string? SetTelemetryDisabled(bool disable)
+    {
+        string? warning = null;
+        using (var key = Registry.LocalMachine.CreateSubKey(DataCollectionPath))
+        {
+            if (disable) key.SetValue("AllowTelemetry", 0, RegistryValueKind.DWord);
+            else key.DeleteValue("AllowTelemetry", throwOnMissingValue: false);
+        }
+        TrySetServiceStart("DiagTrack", disable ? 4 : 2, ref warning);
+        TrySetServiceStart("dmwappushservice", disable ? 4 : 3, ref warning, warnIfMissing: false);
+        if (disable) CommandRunner.Run("cmd", "/c", "net stop DiagTrack");
+        return warning;
+    }
+
+    /// <summary>禁用广告 ID(HKCU AdvertisingInfo Enabled=0),应用不再拿到跨应用广告标识。</summary>
+    public static bool IsAdvertisingIdDisabled() =>
+        Dword(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo", "Enabled") == 0;
+
+    public static void SetAdvertisingIdDisabled(bool disable)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo");
+        key.SetValue("Enabled", disable ? 0 : 1, RegistryValueKind.DWord);
+    }
+
+    private const string LocationSensorsPath = @"SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors";
+
+    /// <summary>禁用位置跟踪(组策略 DisableLocation=1,同时切断系统定位服务)。</summary>
+    public static bool IsLocationTrackingDisabled() => Dword(Registry.LocalMachine, LocationSensorsPath, "DisableLocation") == 1;
+
+    public static void SetLocationTrackingDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.LocalMachine, LocationSensorsPath, "DisableLocation", 1);
+        else DeleteValue(Registry.LocalMachine, LocationSensorsPath, "DisableLocation");
+    }
+
+    private const string ActivityFeedPath = @"SOFTWARE\Policies\Microsoft\Windows\System";
+
+    /// <summary>禁用活动历史记录/时间线:不采集、不上传(EnableActivityFeed=0 等)。</summary>
+    public static bool IsActivityHistoryDisabled() =>
+        Dword(Registry.LocalMachine, ActivityFeedPath, "EnableActivityFeed") == 0;
+
+    public static void SetActivityHistoryDisabled(bool disable)
+    {
+        if (disable)
+        {
+            WriteDword(Registry.LocalMachine, ActivityFeedPath, "EnableActivityFeed", 0);
+            WriteDword(Registry.LocalMachine, ActivityFeedPath, "PublishUserActivities", 0);
+            WriteDword(Registry.LocalMachine, ActivityFeedPath, "UploadUserActivities", 0);
+        }
+        else
+        {
+            DeleteValue(Registry.LocalMachine, ActivityFeedPath, "EnableActivityFeed");
+            DeleteValue(Registry.LocalMachine, ActivityFeedPath, "PublishUserActivities");
+            DeleteValue(Registry.LocalMachine, ActivityFeedPath, "UploadUserActivities");
+        }
+    }
+
+    private const string WindowsSearchPolicyPath = @"SOFTWARE\Policies\Microsoft\Windows\Windows Search";
+
+    /// <summary>禁用 Cortana(组策略 AllowCortana=0)。</summary>
+    public static bool IsCortanaDisabled() => Dword(Registry.LocalMachine, WindowsSearchPolicyPath, "AllowCortana") == 0;
+
+    public static void SetCortanaDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.LocalMachine, WindowsSearchPolicyPath, "AllowCortana", 0);
+        else DeleteValue(Registry.LocalMachine, WindowsSearchPolicyPath, "AllowCortana");
+    }
+
+    /// <summary>禁用 Windows 错误报告(WER Disabled=1,不再向微软发送错误报告)。</summary>
+    public static bool IsErrorReportingDisabled() =>
+        Dword(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\Windows Error Reporting", "Disabled") == 1;
+
+    public static void SetErrorReportingDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\Windows Error Reporting", "Disabled", 1);
+        else DeleteValue(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\Windows Error Reporting", "Disabled");
+    }
+
+    /// <summary>开始菜单搜索只显示本地结果(DisableSearchBoxSuggestions=1,禁用 Bing 网页建议)。</summary>
+    public static bool IsWebSearchSuggestionsDisabled() =>
+        Dword(Registry.CurrentUser, @"Software\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions") == 1;
+
+    public static void SetWebSearchSuggestionsDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.CurrentUser, @"Software\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions", 1);
+        else DeleteValue(Registry.CurrentUser, @"Software\Policies\Microsoft\Windows\Explorer", "DisableSearchBoxSuggestions");
+        BroadcastSettingChange();
+    }
+
+    // ---------------- 系统行为 ----------------
+
+    private const string PowerKeyPath = @"SYSTEM\CurrentControlSet\Control\Power";
+
+    /// <summary>禁用休眠(powercfg /h off),同时关闭快速启动。HibernateEnabled:1=开,0=关。</summary>
+    public static bool IsHibernateDisabled() => Dword(Registry.LocalMachine, PowerKeyPath, "HibernateEnabled") == 0;
+
+    public static async Task SetHibernateDisabledAsync(bool disable) =>
+        await CommandRunner.RunAsync("powercfg", "/h", disable ? "off" : "on").ConfigureAwait(false);
+
+    /// <summary>关闭自动播放(AutoplayHandlers DisableAutoplay=1,即系统设置里的自动播放总开关)。</summary>
+    public static bool IsAutoplayDisabled() =>
+        Dword(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers", "DisableAutoplay") == 1;
+
+    public static void SetAutoplayDisabled(bool disable)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(
+            @"Software\Microsoft\Windows\CurrentVersion\Explorer\AutoplayHandlers");
+        key.SetValue("DisableAutoplay", disable ? 1 : 0, RegistryValueKind.DWord);
+    }
+
+    private const string SmartScreenPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer";
+
+    /// <summary>禁用 SmartScreen(SmartScreenEnabled=Off)。关闭后下载/运行陌生程序不再拦截,请自行承担风险。</summary>
+    public static bool IsSmartScreenDisabled()
+    {
+        using var key = Registry.LocalMachine.OpenSubKey(SmartScreenPath);
+        return key?.GetValue("SmartScreenEnabled") is string s && s.Equals("Off", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static void SetSmartScreenDisabled(bool disable)
+    {
+        using var key = Registry.LocalMachine.CreateSubKey(SmartScreenPath);
+        key.SetValue("SmartScreenEnabled", disable ? "Off" : "RequireAdmin", RegistryValueKind.String);
+    }
+
+    private const string HvciPath =
+        @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity";
+
+    /// <summary>禁用内存完整性(HVCI Enabled=0,需重启生效)。恢复时删除键值回到系统默认。</summary>
+    public static bool IsMemoryIntegrityDisabled() => Dword(Registry.LocalMachine, HvciPath, "Enabled") == 0;
+
+    public static void SetMemoryIntegrityDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.LocalMachine, HvciPath, "Enabled", 0);
+        else DeleteValue(Registry.LocalMachine, HvciPath, "Enabled");
+    }
+
+    private const string SystemRestorePath = @"SOFTWARE\Policies\Microsoft\Windows NT\SystemRestore";
+
+    /// <summary>禁用系统还原(组策略 DisableSR=1)。关闭后将无法用还原点回滚系统,慎用。</summary>
+    public static bool IsSystemRestoreDisabled() => Dword(Registry.LocalMachine, SystemRestorePath, "DisableSR") == 1;
+
+    public static void SetSystemRestoreDisabled(bool disable)
+    {
+        if (disable) WriteDword(Registry.LocalMachine, SystemRestorePath, "DisableSR", 1);
+        else DeleteValue(Registry.LocalMachine, SystemRestorePath, "DisableSR");
+    }
+
+    // ---------------- 资源管理器进程 ----------------
 
     /// <summary>重启资源管理器(桌面/任务栏会短暂消失再恢复,已打开的文件夹窗口会关闭)。</summary>
     public static void RestartExplorer()

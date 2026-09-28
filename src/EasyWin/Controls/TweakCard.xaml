@@ -8,7 +8,21 @@
              d:DesignHeight="110"
              d:DesignWidth="900">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
     <ui:Card Margin="0,0,0,10" Padding="16">
+        <ui:Card.Style>
+            <Style TargetType="ui:Card">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsRisky}" Value="True">
+                        <Setter Property="BorderBrush" Value="#66E81123" />
+                        <Setter Property="BorderThickness" Value="1" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </ui:Card.Style>
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -23,7 +37,14 @@
             </Border>
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,16,0">
-                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Border CornerRadius="4" Padding="5,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Background="#26E81123" BorderBrush="#66E81123" BorderThickness="1"
+                            Visibility="{Binding IsRisky, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="⚠ 高危" FontSize="10" Foreground="#E86A5F" VerticalAlignment="Center" />
+                    </Border>
+                </StackPanel>
                 <TextBlock Text="{Binding Description}" FontSize="12" LineHeight="17"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            TextWrapping="Wrap" Margin="0,3,0,0" />
