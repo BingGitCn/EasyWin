@@ -131,6 +131,7 @@ public partial class App : Application
         _ when type == typeof(WifiViewModel) => new WifiViewModel(GetService<NetworkService>()),
         _ when type == typeof(NetToolsViewModel) => new NetToolsViewModel(GetService<NetworkService>(), GetService<ProxyStore>()),
         _ when type == typeof(TweaksViewModel) => new TweaksViewModel(GetService<NetworkService>(), GetService<PowerPlanAutoSwitchService>()),
+        _ when type == typeof(CleanerViewModel) => new CleanerViewModel(),
         _ when type == typeof(DashboardViewModel) => new DashboardViewModel(GetService<SystemInfoService>(), GetService<NetworkService>()),
         _ when type == typeof(LauncherViewModel) => new LauncherViewModel(),
         _ when type == typeof(AboutViewModel) => new AboutViewModel(),
@@ -146,6 +147,7 @@ public partial class App : Application
         [typeof(WifiPage)] = () => new WifiPage { DataContext = GetService<WifiViewModel>() },
         [typeof(NetToolsPage)] = () => new NetToolsPage { DataContext = GetService<NetToolsViewModel>() },
         [typeof(TweaksPage)] = () => new TweaksPage { DataContext = GetService<TweaksViewModel>() },
+        [typeof(CleanerPage)] = () => new CleanerPage { DataContext = GetService<CleanerViewModel>() },
         [typeof(LauncherPage)] = () => new LauncherPage { DataContext = GetService<LauncherViewModel>() },
         [typeof(AboutPage)] = () => new AboutPage { DataContext = GetService<AboutViewModel>() },
     }.ToFrozenDictionary();

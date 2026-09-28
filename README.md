@@ -51,6 +51,19 @@
 
 高危项(防火墙/SmartScreen/内存完整性/系统还原)应用前需二次确认;任务栏/资源管理器修改会广播 `WM_SETTINGCHANGE`,多数即时生效,少数需一键重启资源管理器。
 
+### 🧹 清理
+理念参考 [builtbybel/FluentCleaner](https://github.com/builtbybel/FluentCleaner)(MIT):只清理明确列出的目标,不做注册表「深度清理」,勾选了才动手;被占用/受保护的文件自动跳过。进入页面自动扫描各目标大小,一键清理勾选项并汇总释放空间。
+
+| 目标 | 说明 |
+|---|---|
+| 系统 / 用户临时文件夹 | 仅清理 24 小时前的旧文件,避免误删正在使用的文件 |
+| Windows 更新缓存 / 传递优化缓存 | SoftwareDistribution\Download 与 P2P 分发缓存 |
+| 缩略图与图标缓存 | 被资源管理器占用的会跳过,可配合「重启资源管理器」重试 |
+| 错误报告队列 / 应用崩溃转储 | WER ReportQueue/Archive、CrashDumps、Minidump |
+| 回收站 | shell32 查询大小并清空(所有盘符,不可恢复) |
+| Edge / Chrome / Firefox 缓存 | 各 Profile 的网页缓存 / Code Cache / GPU 缓存,清理前请关浏览器 |
+| 最近使用记录 | 「最近使用的文件」列表与「运行」对话框历史 |
+
 ### 🖥 远程桌面
 保存 mstsc 连接(服务器/用户/分辨率/管理模式),一键发起远程控制;勾选"记住凭据"后通过 Windows 凭据管理器免密登录(CredWrite 直写,密码不经过命令行),密码经 DPAPI 加密存储;支持连接方案导入导出(跨机器导入需重新输入密码)。
 
@@ -72,7 +85,7 @@ dotnet build src/EasyWin/EasyWin.csproj
 src/EasyWin/bin/Debug/net8.0-windows/EasyWin.exe
 
 # 直接跳转某页(也可用于自动化演示)
-EasyWin.exe --page=profiles   # network / profiles / nettools / tweaks / launcher / about
+EasyWin.exe --page=profiles   # network / profiles / nettools / tweaks / cleaner / launcher / about
 
 # 发布(依赖框架单文件 → dist\EasyWin.exe)
 tools\publish.bat
@@ -82,11 +95,11 @@ tools\publish.bat
 ```
 src/EasyWin/
 ├── Models/      NetworkAdapterInfo、IpProfile、AutomationRule、LaunchItem 等
-├── Services/    NetworkService(WMI+netsh)、TweakService(注册表/服务/电源)
+├── Services/    NetworkService(WMI+netsh)、TweakService(注册表/服务/电源)、CleanerService(扫描/清理引擎)
 │                TrayService(托盘)、AutomationService(场景自动化)、PortLookup(端口占用)
 │                ProfileStore、SysProxyService、HostsService、SystemInfoService
 ├── ViewModels/  MVVM(CommunityToolkit.Mvvm),每页一个 VM
-├── Views/       FluentWindow 主窗体 + 9 个页面 + 方案/规则编辑窗口
+├── Views/       FluentWindow 主窗体 + 10 个页面 + 方案/规则编辑窗口
 └── Controls/    TweakCard 卡片控件
 ```
 

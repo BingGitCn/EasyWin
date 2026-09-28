@@ -164,6 +164,7 @@ public partial class MainWindow : FluentWindow
             "远程桌面" or "rdp" => typeof(RdpPage),
             "网络工具" or "nettools" => typeof(NetToolsPage),
             "系统设置" or "tweaks" => typeof(TweaksPage),
+            "清理" or "cleaner" => typeof(CleanerPage),
             "快捷启动" or "launcher" => typeof(LauncherPage),
             "关于" or "about" => typeof(AboutPage),
             _ => typeof(DashboardPage),
