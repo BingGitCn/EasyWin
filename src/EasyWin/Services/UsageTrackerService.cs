@@ -57,7 +57,12 @@ public static class UsageTrackerService
         ["rider64"] = "Rider",
         ["studio64"] = "Android Studio",
         ["ssms"] = "SSMS",
-        ["devenv"] = "Visual Studio",
+    };
+
+    /// <summary>这些宿主/系统进程的 exe 描述是英文或无意义,直接用字典名(字典优先)。</summary>
+    private static readonly HashSet<string> DictFirstNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ApplicationFrameHost", "conhost", "explorer", "RuntimeBroker",
     };
 
     [DllImport("user32.dll")]
@@ -172,28 +177,41 @@ public static class UsageTrackerService
         }
     }
 
-    /// <summary>友好名解析:内置字典 → exe 的 FileDescription(如 devenv → "Visual Studio 2026")→ 原进程名。</summary>
+    /// <summary>友好名解析:exe 信息优先(FileDescription/ProductDescription,自动取带版本号的那个),
+    /// 其次内置字典,最后原进程名。DictFirstNames 里的宿主进程反之。</summary>
     private static string ResolveDisplayName(string raw, string? exePath)
     {
-        if (BuiltinNames.TryGetValue(raw, out var builtin)) return builtin;
+        if (DictFirstNames.Contains(raw) && BuiltinNames.TryGetValue(raw, out var dictName)) return dictName;
+
         if (!string.IsNullOrEmpty(exePath))
         {
             try
             {
                 var info = FileVersionInfo.GetVersionInfo(exePath);
                 var description = info.FileDescription?.Trim();
-                if (!string.IsNullOrWhiteSpace(description)) return description;
+                var product = info.ProductName?.Trim();
+                var best = !string.IsNullOrWhiteSpace(description) ? description : null;
+                if (!string.IsNullOrWhiteSpace(product))
+                {
+                    // ProductName 通常带版本(如 "Microsoft Visual Studio 2026"),比描述更具体时用它
+                    var shortProduct = product.Replace("Microsoft ", "", StringComparison.OrdinalIgnoreCase).Trim();
+                    if (shortProduct.Length > 0 &&
+                        (best == null || (shortProduct.Contains(best, StringComparison.OrdinalIgnoreCase)
+                                          && shortProduct.Length > best.Length)))
+                        best = shortProduct;
+                }
+                if (best != null) return best;
             }
             catch { /* 无版本信息/路径失效 */ }
         }
-        return raw;
+        return BuiltinNames.TryGetValue(raw, out var builtin) ? builtin : raw;
     }
 
     /// <summary>展示时懒解析:历史数据里没登记过友好名的,趁进程在运行再试一次。</summary>
     private static string DisplayNameOf(string raw)
     {
         if (_names.TryGetValue(raw, out var name)) return name;
-        if (BuiltinNames.TryGetValue(raw, out var builtin)) return _names[raw] = builtin;
+        if (BuiltinNames.TryGetValue(raw, out var builtin)) return builtin; // 字典值不落缓存,字典更新后即时生效
         try
         {
             var process = System.Diagnostics.Process.GetProcessesByName(raw).FirstOrDefault();
@@ -202,7 +220,7 @@ public static class UsageTrackerService
         }
         catch
         {
-            return _names[raw] = raw;
+            return raw;
         }
     }
 
@@ -245,6 +263,11 @@ public static class UsageTrackerService
             {
                 _days = legacy;
             }
+
+            // 旧版内置字典把 devenv 写死为 "Visual Studio"(无版本号),清掉让带版本的新解析重新登记
+            if (_names.TryGetValue("devenv", out var legacyName) &&
+                legacyName.Equals("Visual Studio", StringComparison.OrdinalIgnoreCase))
+                _names.Remove("devenv");
         }
         catch (Exception ex)
         {
