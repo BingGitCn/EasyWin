@@ -68,6 +68,8 @@
                                        TargetPageType="{x:Type views:TweaksPage}" />
                 <ui:NavigationViewItem Content="清理" Icon="{ui:SymbolIcon Broom24}"
                                        TargetPageType="{x:Type views:CleanerPage}" />
+                <ui:NavigationViewItem Content="使用统计" Icon="{ui:SymbolIcon DataUsage24}"
+                                       TargetPageType="{x:Type views:UsageStatsPage}" />
                 <ui:NavigationViewItem Content="快捷启动" Icon="{ui:SymbolIcon Rocket24}"
                                        TargetPageType="{x:Type views:LauncherPage}" />
                 <ui:NavigationViewItem Content="关于" Icon="{ui:SymbolIcon Info24}"

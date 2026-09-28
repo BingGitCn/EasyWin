@@ -31,6 +31,7 @@ public static class SettingsStore
         public bool PowerAutoEnabled { get; set; }
         public string AcPlanGuid { get; set; } = "";
         public string BatteryPlanGuid { get; set; } = "";
+        public bool UsageTrackingEnabled { get; set; }
     }
 
     private static Data _data = Load();
@@ -129,5 +130,14 @@ public static class SettingsStore
     {
         get => _data.BatteryPlanGuid;
         set { _data.BatteryPlanGuid = value; Save(); }
+    }
+
+    // ---------------- 软件使用统计 ----------------
+
+    /// <summary>软件使用时长统计开关(默认关闭;数据仅存本地)。</summary>
+    public static bool UsageTrackingEnabled
+    {
+        get => _data.UsageTrackingEnabled;
+        set { _data.UsageTrackingEnabled = value; Save(); }
     }
 }

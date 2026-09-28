@@ -166,6 +166,7 @@ public partial class MainWindow : FluentWindow
             "网络诊断" or "diag" or "diagnostics" => typeof(DiagnosticsPage),
             "系统设置" or "tweaks" => typeof(TweaksPage),
             "清理" or "cleaner" => typeof(CleanerPage),
+            "使用统计" or "usage" => typeof(UsageStatsPage),
             "快捷启动" or "launcher" => typeof(LauncherPage),
             "关于" or "about" => typeof(AboutPage),
             _ => typeof(DashboardPage),

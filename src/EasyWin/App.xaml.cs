@@ -57,6 +57,9 @@ public partial class App : Application
         // 电源计划自动切换:插电/用电池时按配置切计划
         _ = GetService<PowerPlanAutoSwitchService>();
 
+        // 软件使用统计:按设置启动后台采样(托盘常驻期间生效)
+        UsageTrackerService.Initialize();
+
         _ = System.Threading.Tasks.Task.Run(CleanupTempFiles);
 
         base.OnStartup(e);
@@ -133,6 +136,7 @@ public partial class App : Application
         _ when type == typeof(DiagnosticsViewModel) => new DiagnosticsViewModel(),
         _ when type == typeof(TweaksViewModel) => new TweaksViewModel(GetService<NetworkService>(), GetService<PowerPlanAutoSwitchService>()),
         _ when type == typeof(CleanerViewModel) => new CleanerViewModel(),
+        _ when type == typeof(UsageStatsViewModel) => new UsageStatsViewModel(),
         _ when type == typeof(DashboardViewModel) => new DashboardViewModel(GetService<SystemInfoService>(), GetService<NetworkService>()),
         _ when type == typeof(LauncherViewModel) => new LauncherViewModel(),
         _ when type == typeof(AboutViewModel) => new AboutViewModel(),
@@ -150,6 +154,7 @@ public partial class App : Application
         [typeof(DiagnosticsPage)] = () => new DiagnosticsPage { DataContext = GetService<DiagnosticsViewModel>() },
         [typeof(TweaksPage)] = () => new TweaksPage { DataContext = GetService<TweaksViewModel>() },
         [typeof(CleanerPage)] = () => new CleanerPage { DataContext = GetService<CleanerViewModel>() },
+        [typeof(UsageStatsPage)] = () => new UsageStatsPage { DataContext = GetService<UsageStatsViewModel>() },
         [typeof(LauncherPage)] = () => new LauncherPage { DataContext = GetService<LauncherViewModel>() },
         [typeof(AboutPage)] = () => new AboutPage { DataContext = GetService<AboutViewModel>() },
     }.ToFrozenDictionary();

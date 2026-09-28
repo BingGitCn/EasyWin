@@ -76,6 +76,9 @@
 
 仪表盘同步显示公网出口 IP(ipify)。
 
+### 📊 使用统计
+软件使用时长排行(理念参考 [Planshit/Tai](https://github.com/Planshit/Tai)(MIT),轻量版):开关默认关闭,开启后托盘常驻期间每 15 秒采样前台窗口进程,无输入 5 分钟视为离开不计入;数据仅存本地 `usage.json`,保留 30 天,无任何网络上传。页面支持今日/近 7 天/近 30 天切换,Top 10 排行 + 占比条 + 总活跃时长。
+
 ### 🖥 远程桌面
 保存 mstsc 连接(服务器/用户/分辨率/管理模式),一键发起远程控制;勾选"记住凭据"后通过 Windows 凭据管理器免密登录(CredWrite 直写,密码不经过命令行),密码经 DPAPI 加密存储;支持连接方案导入导出(跨机器导入需重新输入密码)。
 
@@ -97,7 +100,7 @@ dotnet build src/EasyWin/EasyWin.csproj
 src/EasyWin/bin/Debug/net8.0-windows/EasyWin.exe
 
 # 直接跳转某页(也可用于自动化演示)
-EasyWin.exe --page=profiles   # network / profiles / nettools / diag / tweaks / cleaner / launcher / about
+EasyWin.exe --page=profiles   # network / profiles / nettools / diag / tweaks / cleaner / usage / launcher / about
 
 # 发布(依赖框架单文件 → dist\EasyWin.exe)
 tools\publish.bat
@@ -112,7 +115,7 @@ src/EasyWin/
 │                TrayService(托盘)、AutomationService(场景自动化)、PortLookup(端口占用)
 │                ProfileStore、SysProxyService、HostsService、SystemInfoService
 ├── ViewModels/  MVVM(CommunityToolkit.Mvvm),每页一个 VM
-├── Views/       FluentWindow 主窗体 + 11 个页面 + 方案/规则编辑窗口
+├── Views/       FluentWindow 主窗体 + 12 个页面 + 方案/规则编辑窗口
 └── Controls/    TweakCard 卡片控件
 ```
 
