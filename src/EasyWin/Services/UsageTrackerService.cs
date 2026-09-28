@@ -1,10 +1,11 @@
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace EasyWin.Services;
 
-/// <summary>单条使用统计:进程名 → 时长(小时)与占比。</summary>
+/// <summary>单条使用统计:进程显示名 → 时长(小时)与占比。</summary>
 public record UsageStatEntry(string Process, double Hours, double Percent);
 
 /// <summary>一段时间内的汇总统计。</summary>
@@ -13,6 +14,7 @@ public record UsageStats(double TotalHours, int Days, List<UsageStatEntry> Entri
 /// <summary>
 /// 软件使用时长统计(轻量版,理念参考 Planshit/Tai,MIT):托盘常驻期间每 15 秒采样前台窗口进程,
 /// 把间隔计入该进程;键盘鼠标无输入超过 5 分钟视为离开不计。数据仅存本地 usage.json,保留 30 天。
+/// 展示用友好名:采样时读 exe 的 FileDescription(如 devenv → Visual Studio 2026),内置字典兜底。
 /// </summary>
 public static class UsageTrackerService
 {
@@ -28,9 +30,35 @@ public static class UsageTrackerService
     private static DateTime _lastFlush = DateTime.Now;
 
     private static string Path => System.IO.Path.Combine(AppPaths.DataDir, "usage.json");
-    private static Dictionary<string, Dictionary<string, double>> _days = Load();
+    private static Dictionary<string, Dictionary<string, double>> _days = [];
+    private static Dictionary<string, string> _names = [];
 
     private static string TodayKey => DateTime.Now.ToString("yyyy-MM-dd");
+
+    static UsageTrackerService() => Load();
+
+    /// <summary>常见进程的中文显示名兜底(exe 没写 FileDescription 或拿不到路径时用)。</summary>
+    private static readonly Dictionary<string, string> BuiltinNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["explorer"] = "文件资源管理器",
+        ["cmd"] = "命令提示符",
+        ["pwsh"] = "PowerShell",
+        ["conhost"] = "控制台窗口宿主",
+        ["code"] = "VS Code",
+        ["notepad"] = "记事本",
+        ["mspaint"] = "画图",
+        ["taskmgr"] = "任务管理器",
+        ["ApplicationFrameHost"] = "UWP 应用宿主",
+        ["SystemSettings"] = "系统设置",
+        ["idea64"] = "IntelliJ IDEA",
+        ["pycharm64"] = "PyCharm",
+        ["webstorm64"] = "WebStorm",
+        ["goland64"] = "GoLand",
+        ["rider64"] = "Rider",
+        ["studio64"] = "Android Studio",
+        ["ssms"] = "SSMS",
+        ["devenv"] = "Visual Studio",
+    };
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
@@ -69,7 +97,7 @@ public static class UsageTrackerService
         {
             if (_timer != null) return;
             _lastTick = DateTime.Now;
-            _lastProcess = GetForegroundProcessName();
+            _lastProcess = SampleForeground().Name;
             _timer = new System.Threading.Timer(_ => Tick(), null, SampleIntervalMs, SampleIntervalMs);
             Log.Info("软件使用统计已开启");
         }
@@ -98,7 +126,7 @@ public static class UsageTrackerService
                 AddSeconds(_lastProcess, (now - _lastTick).TotalSeconds);
 
             _lastTick = now;
-            _lastProcess = GetForegroundProcessName();
+            _lastProcess = SampleForeground().Name;
 
             if ((now - _lastFlush).TotalSeconds >= FlushIntervalSec)
                 Flush();
@@ -117,20 +145,64 @@ public static class UsageTrackerService
             : 0;
     }
 
-    private static string GetForegroundProcessName()
+    private record ForegroundSample(string Name);
+
+    /// <summary>取当前前台窗口的进程名;顺便把该进程的友好名登记进名字表(此刻进程一定在运行,能读到 exe 信息)。</summary>
+    private static ForegroundSample SampleForeground()
     {
         try
         {
             var hwnd = GetForegroundWindow();
-            if (hwnd == IntPtr.Zero) return ""; // 锁屏/安全桌面
+            if (hwnd == IntPtr.Zero) return new ForegroundSample(""); // 锁屏/安全桌面
             GetWindowThreadProcessId(hwnd, out var pid);
-            if (pid == 0) return "";
+            if (pid == 0) return new ForegroundSample("");
             using var process = System.Diagnostics.Process.GetProcessById((int)pid);
-            return process.ProcessName;
+            var name = process.ProcessName;
+            if (name.Length > 0 && !_names.ContainsKey(name))
+            {
+                string? exePath = null;
+                try { exePath = process.MainModule?.FileName; } catch { /* 系统进程可能拒绝读取 */ }
+                _names[name] = ResolveDisplayName(name, exePath);
+            }
+            return new ForegroundSample(name);
         }
         catch
         {
-            return ""; // 进程已退出或无权限,丢弃该次采样
+            return new ForegroundSample(""); // 进程已退出或无权限,丢弃该次采样
+        }
+    }
+
+    /// <summary>友好名解析:内置字典 → exe 的 FileDescription(如 devenv → "Visual Studio 2026")→ 原进程名。</summary>
+    private static string ResolveDisplayName(string raw, string? exePath)
+    {
+        if (BuiltinNames.TryGetValue(raw, out var builtin)) return builtin;
+        if (!string.IsNullOrEmpty(exePath))
+        {
+            try
+            {
+                var info = FileVersionInfo.GetVersionInfo(exePath);
+                var description = info.FileDescription?.Trim();
+                if (!string.IsNullOrWhiteSpace(description)) return description;
+            }
+            catch { /* 无版本信息/路径失效 */ }
+        }
+        return raw;
+    }
+
+    /// <summary>展示时懒解析:历史数据里没登记过友好名的,趁进程在运行再试一次。</summary>
+    private static string DisplayNameOf(string raw)
+    {
+        if (_names.TryGetValue(raw, out var name)) return name;
+        if (BuiltinNames.TryGetValue(raw, out var builtin)) return _names[raw] = builtin;
+        try
+        {
+            var process = System.Diagnostics.Process.GetProcessesByName(raw).FirstOrDefault();
+            var exePath = process?.MainModule?.FileName;
+            return _names[raw] = ResolveDisplayName(raw, exePath);
+        }
+        catch
+        {
+            return _names[raw] = raw;
         }
     }
 
@@ -151,22 +223,33 @@ public static class UsageTrackerService
         }
     }
 
-    private static Dictionary<string, Dictionary<string, double>> Load()
+    private sealed class StorageData
+    {
+        public Dictionary<string, Dictionary<string, double>> Days { get; set; } = [];
+        public Dictionary<string, string> Names { get; set; } = [];
+    }
+
+    private static void Load()
     {
         try
         {
-            if (File.Exists(Path))
+            if (!File.Exists(Path)) return;
+            var json = File.ReadAllText(Path);
+            // 兼容旧格式(纯 days 字典)与新格式 {days, names}
+            if (JsonSerializer.Deserialize<StorageData>(json) is { } wrapped && wrapped.Days.Count > 0)
             {
-                var data = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(
-                    File.ReadAllText(Path));
-                if (data != null) return data;
+                _days = wrapped.Days;
+                _names = wrapped.Names;
+            }
+            else if (JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(json) is { } legacy)
+            {
+                _days = legacy;
             }
         }
         catch (Exception ex)
         {
             Log.Warn("读取使用统计失败: " + ex.Message);
         }
-        return [];
     }
 
     private static void Flush()
@@ -181,7 +264,7 @@ public static class UsageTrackerService
                 foreach (var stale in _days.Keys.Where(k => string.CompareOrdinal(k, cutoff) < 0).ToList())
                     _days.Remove(stale);
 
-                File.WriteAllText(Path, JsonSerializer.Serialize(_days, new JsonSerializerOptions { WriteIndented = false }));
+                File.WriteAllText(Path, JsonSerializer.Serialize(new StorageData { Days = _days, Names = _names }));
             }
             catch (Exception ex)
             {
@@ -190,7 +273,7 @@ public static class UsageTrackerService
         }
     }
 
-    /// <summary>汇总最近 N 天的使用统计(按时长降序,Process 为空字符串的采样丢弃)。</summary>
+    /// <summary>汇总最近 N 天的使用统计(按时长降序;按友好名聚合,老数据展示时懒解析补登记)。</summary>
     public static UsageStats GetStats(int days)
     {
         lock (_lock)
@@ -206,7 +289,8 @@ public static class UsageTrackerService
                 foreach (var (process, seconds) in day)
                 {
                     if (process.Length == 0 || seconds <= 0) continue;
-                    totals[process] = totals.GetValueOrDefault(process) + seconds;
+                    var display = DisplayNameOf(process);
+                    totals[display] = totals.GetValueOrDefault(display) + seconds;
                 }
             }
 
@@ -222,3 +306,4 @@ public static class UsageTrackerService
         }
     }
 }
+
