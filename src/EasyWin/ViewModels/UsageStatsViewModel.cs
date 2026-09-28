@@ -24,6 +24,9 @@ public partial class UsageStatsViewModel : ObservableObject
     [ObservableProperty] private string _summaryText = "";
     [ObservableProperty] private string _rangeText = "今日";
     [ObservableProperty] private bool _isEmpty;
+    [ObservableProperty] private bool _todayActive = true;
+    [ObservableProperty] private bool _weekActive;
+    [ObservableProperty] private bool _monthActive;
 
     private int _rangeDays = 1;
 
@@ -49,6 +52,9 @@ public partial class UsageStatsViewModel : ObservableObject
             30 => "近 30 天",
             _ => "今日",
         };
+        TodayActive = _rangeDays == 1;
+        WeekActive = _rangeDays == 7;
+        MonthActive = _rangeDays == 30;
         Refresh();
     }
 

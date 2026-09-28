@@ -10,16 +10,24 @@
 
     <Page.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <Style x:Key="RangeButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
-            <Setter Property="Appearance" Value="Secondary" />
+        <!--  三个范围按钮各自绑定独立的状态属性,避免共用样式时全部命中高亮  -->
+        <Style x:Key="TodayButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding RangeText}" Value="今日">
+                <DataTrigger Binding="{Binding TodayActive}" Value="True">
                     <Setter Property="Appearance" Value="Primary" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding RangeText}" Value="近 7 天">
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="WeekButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding WeekActive}" Value="True">
                     <Setter Property="Appearance" Value="Primary" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding RangeText}" Value="近 30 天">
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="MonthButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding MonthActive}" Value="True">
                     <Setter Property="Appearance" Value="Primary" />
                 </DataTrigger>
             </Style.Triggers>
@@ -47,20 +55,21 @@
 
         <!--  范围与汇总  -->
         <ui:Card Padding="16" Margin="0,0,0,10">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ui:Button Content="今日" Margin="0,0,8,0" Style="{StaticResource RangeButtonStyle}"
-                               Command="{Binding SelectRangeCommand}" CommandParameter="today" />
-                    <ui:Button Content="近 7 天" Margin="0,0,8,0" Style="{StaticResource RangeButtonStyle}"
-                               Command="{Binding SelectRangeCommand}" CommandParameter="week" />
-                    <ui:Button Content="近 30 天" Style="{StaticResource RangeButtonStyle}"
-                               Command="{Binding SelectRangeCommand}" CommandParameter="month" />
-                </StackPanel>
-                <StackPanel>
-                    <TextBlock Text="{Binding RangeText}" FontSize="15" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SummaryText}" Style="{StaticResource CaptionText}" Margin="0,2,0,0" />
-                </StackPanel>
-            </DockPanel>
+            <StackPanel>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:Button Content="今日" Margin="0,0,8,0" Style="{StaticResource TodayButtonStyle}"
+                                   Command="{Binding SelectRangeCommand}" CommandParameter="today" />
+                        <ui:Button Content="近 7 天" Margin="0,0,8,0" Style="{StaticResource WeekButtonStyle}"
+                                   Command="{Binding SelectRangeCommand}" CommandParameter="week" />
+                        <ui:Button Content="近 30 天" Style="{StaticResource MonthButtonStyle}"
+                                   Command="{Binding SelectRangeCommand}" CommandParameter="month" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding RangeText}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBlock Text="{Binding SummaryText}" Style="{StaticResource CaptionText}" Margin="0,6,0,0"
+                           TextWrapping="Wrap" />
+            </StackPanel>
         </ui:Card>
 
         <!--  排行榜  -->
