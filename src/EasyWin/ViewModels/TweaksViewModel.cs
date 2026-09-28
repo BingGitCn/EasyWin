@@ -171,6 +171,24 @@ public partial class TweaksViewModel : ObservableObject
                 async target => { TweakService.SetCmdHereMenu(target); return (string?)null; },
                 "添加菜单", "移除菜单",
                 () => { }),
+            new("默认打开「此电脑」",
+                "资源管理器启动时直接进入此电脑,而不是快速访问。(微软开发机配置同款)",
+                "FolderOpen24", TweakService.IsLaunchToThisPc,
+                async target => { TweakService.SetLaunchToThisPc(target); return (string?)null; },
+                "打开此电脑", "恢复快速访问",
+                () => { }),
+            new("标题栏显示完整路径",
+                "资源管理器窗口标题显示当前文件夹的完整路径,复制路径、分辨同名文件夹更方便。",
+                "LinkMultiple24", TweakService.IsFullPathInTitleBar,
+                async target => { TweakService.SetFullPathInTitleBar(target); return (string?)null; },
+                "显示全路径", "恢复短标题",
+                () => { }),
+            new("精简快速访问与推广提示",
+                "关闭快速访问的常用文件夹/最近文件/云文件推荐,以及资源管理器里的 OneDrive 同步推广提示。",
+                "Broom24", TweakService.IsQuickAccessLean,
+                async target => { TweakService.SetQuickAccessLean(target); return (string?)null; },
+                "精简快速访问", "恢复快速访问",
+                () => { }),
         };
         if (TweakService.IsWin11)
         {
@@ -205,10 +223,16 @@ public partial class TweaksViewModel : ObservableObject
                 "隐藏任务视图", "恢复任务视图",
                 () => { }),
             new("关闭开始菜单「推荐项目」",
-                "不再在开始菜单显示推荐的应用/文件与推广内容。",
+                "不再在开始菜单显示推荐的应用/文件、推广内容与账户通知。",
                 "MegaphoneLoud24", TweakService.IsStartRecommendationsHidden,
                 async target => { TweakService.SetStartRecommendationsHidden(target); return (string?)null; },
                 "关闭推荐", "恢复推荐",
+                () => { }),
+            new("关闭搜索亮点",
+                "搜索框不再轮播每日热点图片与推荐内容(微软开发机配置同款)。",
+                "Highlight24", TweakService.IsSearchHighlightsOff,
+                async target => { TweakService.SetSearchHighlightsOff(target); return (string?)null; },
+                "关闭亮点", "恢复亮点",
                 () => { }),
         };
         if (TweakService.IsWin11)
@@ -230,6 +254,15 @@ public partial class TweaksViewModel : ObservableObject
                 "Chat24", TweakService.IsChatCopilotHidden,
                 async target => { TweakService.SetChatCopilotHidden(target); return (string?)null; },
                 "隐藏按钮", "恢复按钮",
+                () => { }));
+        }
+        if (TweakService.IsWin11_23H2)
+        {
+            taskbar.Add(new TweakCardViewModel("任务栏右键「结束任务」",
+                "在任务栏图标右键菜单中直接结束进程,不用再打开任务管理器(微软开发机配置同款)。",
+                "Dismiss24", TweakService.IsTaskbarEndTaskEnabled,
+                async target => { TweakService.SetTaskbarEndTask(target); return (string?)null; },
+                "启用结束任务", "移除结束任务",
                 () => { }));
         }
         TaskbarSection = new ObservableCollection<TweakCardViewModel>(taskbar);
@@ -279,15 +312,21 @@ public partial class TweaksViewModel : ObservableObject
                 async target => { TweakService.SetWebSearchSuggestionsDisabled(target); return (string?)null; },
                 "仅本地搜索", "恢复网页搜索",
                 () => { }),
+            new("勿扰模式(关闭全部通知)",
+                "关闭所有应用的横幅通知,专注不被打断;恢复即还原通知总开关。",
+                "AlertOff24", TweakService.IsNotificationsOff,
+                async target => { TweakService.SetNotificationsOff(target); return (string?)null; },
+                "开启勿扰", "恢复通知",
+                () => { }),
         ];
 
         // ---------- 系统与安全 ----------
-        SystemSection =
-        [
+        var system = new List<TweakCardViewModel>
+        {
             new TweakCardViewModel("启用远程桌面",
-                "允许其他设备通过远程桌面连接本机(家庭版不支持作为被控端)。",
+                "允许其他设备通过远程桌面连接本机(家庭版不支持作为被控端),开启时自动放行防火墙 RDP 入站规则。",
                 "Desktop24", TweakService.IsRemoteDesktopEnabled,
-                async target => { TweakService.SetRemoteDesktop(target); return (string?)null; },
+                async target => { await TweakService.SetRemoteDesktopAsync(target); return (string?)null; },
                 "开启远程", "关闭远程",
                 () => { }),
             new TweakCardViewModel("视觉效果设为最佳性能",
@@ -295,6 +334,12 @@ public partial class TweaksViewModel : ObservableObject
                 "Flash24", TweakService.IsBestPerformance,
                 async target => { TweakService.SetBestPerformance(target); return (string?)null; },
                 "最佳性能", "恢复默认",
+                () => { }),
+            new TweakCardViewModel("系统深色模式",
+                "一键切换 Windows 系统与应用为深色(应用+系统双开关),随写随生效。",
+                "DarkTheme24", TweakService.IsSystemDarkMode,
+                async target => { TweakService.SetSystemDarkMode(target); return (string?)null; },
+                "切换深色", "切换浅色",
                 () => { }),
             new TweakCardViewModel("禁用休眠与快速启动",
                 "powercfg /h off,同时关闭基于休眠的「快速启动」,适合双系统/频繁重启的机器,并可释放 hiberfil.sys 空间。",
@@ -332,7 +377,29 @@ public partial class TweaksViewModel : ObservableObject
                 async target => { TweakService.SetSystemRestoreDisabled(target); return (string?)null; },
                 "禁用系统还原", "恢复系统还原",
                 () => { }, risky: true),
-        ];
+        };
+        system.Add(new TweakCardViewModel("开发者模式",
+            "允许侧加载应用、创建符号链接等开发特性(AllowDevelopmentWithoutDevLicense=1,微软开发机配置同款)。",
+            "Code24", TweakService.IsDeveloperModeEnabled,
+            async target => { TweakService.SetDeveloperMode(target); return (string?)null; },
+            "启用开发模式", "关闭开发模式",
+            () => { }));
+        system.Add(new TweakCardViewModel("启用长路径",
+            "解除 Win32 API 260 字符路径长度限制(LongPathsEnabled=1),深度目录的项目/解压不再报错,重启生效。",
+            "ArrowAutofitWidth24", TweakService.IsLongPathsEnabled,
+            async target => { TweakService.SetLongPaths(target); return (string?)null; },
+            "启用长路径", "恢复默认限制",
+            () => { }));
+        if (TweakService.IsWin11_24H2)
+        {
+            system.Add(new TweakCardViewModel("启用 Win11 Sudo",
+                "在终端里直接用 sudo 提权执行命令(内联模式,微软开发机配置同款;可用 sudo config 切换窗口模式)。",
+                "ArrowExpand24", TweakService.IsSudoEnabled,
+                async target => { TweakService.SetSudo(target); return (string?)null; },
+                "启用 Sudo", "关闭 Sudo",
+                () => { }));
+        }
+        SystemSection = new ObservableCollection<TweakCardViewModel>(system);
     }
 
     public ObservableCollection<TweakCardViewModel> UpdateSection { get; }

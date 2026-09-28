@@ -38,11 +38,17 @@ public static class TweakService
         uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
 
     /// <summary>广播设置变更(WM_SETTINGCHANGE),让任务栏/资源管理器的部分注册表修改免重启生效。</summary>
-    private static void BroadcastSettingChange()
+    private static void BroadcastSettingChange(string section = "Tray Settings")
     {
         SendMessageTimeout(new IntPtr(0xFFFF) /*HWND_BROADCAST*/, 0x001A /*WM_SETTINGCHANGE*/, UIntPtr.Zero,
-            "Tray Settings", 0x0002 /*SMTO_ABORTIFHUNG*/, 2000, out _);
+            section, 0x0002 /*SMTO_ABORTIFHUNG*/, 2000, out _);
     }
+
+    /// <summary>Win11 23H2(Build 22631+):任务栏右键「结束任务」等。</summary>
+    public static bool IsWin11_23H2 => Environment.OSVersion.Version.Build >= 22631;
+
+    /// <summary>Win11 24H2(Build 26100+):Sudo 等。</summary>
+    public static bool IsWin11_24H2 => Environment.OSVersion.Version.Build >= 26100;
 
     // ---------------- Windows 更新 ----------------
 
@@ -134,16 +140,24 @@ public static class TweakService
 
     public static bool IsRemoteDesktopEnabled()
     {
-        using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server");
+        using var key = Registry.LocalMachine.OpenSubKey(
+            @"SYSTEM\CurrentControlSet\Control\Terminal Server");
         return key?.GetValue("fDenyTSConnections") is 0;
     }
 
-    public static void SetRemoteDesktop(bool enable)
+    /// <summary>开关远程桌面;开启时同步放行防火墙 RDP 入站规则(规则用程序化名称,不受系统语言影响)——
+    /// 否则开着防火墙的机器即使 fDenyTSConnections=0 也连不上。参考 microsoft/WindowsDeveloperConfig 的注记。</summary>
+    public static async Task SetRemoteDesktopAsync(bool enable)
     {
-        using var key = Registry.LocalMachine.OpenSubKey(
-            @"SYSTEM\CurrentControlSet\Control\Terminal Server", writable: true)
-            ?? Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server");
-        key.SetValue("fDenyTSConnections", enable ? 0 : 1, RegistryValueKind.DWord);
+        using (var key = Registry.LocalMachine.OpenSubKey(
+                   @"SYSTEM\CurrentControlSet\Control\Terminal Server", writable: true)
+               ?? Registry.LocalMachine.CreateSubKey(@"SYSTEM\CurrentControlSet\Control\Terminal Server"))
+        {
+            key.SetValue("fDenyTSConnections", enable ? 0 : 1, RegistryValueKind.DWord);
+        }
+        foreach (var rule in new[] { "RemoteDesktop-UserMode-In-TCP", "RemoteDesktop-UserMode-In-UDP" })
+            await CommandRunner.RunAsync("netsh", "advfirewall", "firewall", "set", "rule",
+                $"name={rule}", "new", enable ? "enable=Yes" : "enable=No").ConfigureAwait(false);
     }
 
     // ---------------- 防火墙 ----------------
@@ -393,7 +407,7 @@ public static class TweakService
 
     private const string ContentDeliveryPath = @"Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager";
 
-    /// <summary>关闭开始菜单「推荐项目/建议」广告:Win11 走 Start_IrisRecommendations,Win10 走内容投递管理器。</summary>
+    /// <summary>关闭开始菜单「推荐项目/建议」与账户通知:Win11 走 Start_IrisRecommendations/Start_AccountNotifications,Win10 走内容投递管理器。</summary>
     public static bool IsStartRecommendationsHidden() => IsWin11
         ? Dword(Registry.CurrentUser, AdvancedPath, "Start_IrisRecommendations") == 0
         : Dword(Registry.CurrentUser, ContentDeliveryPath, "SystemPaneSuggestionsEnabled") == 0;
@@ -403,6 +417,7 @@ public static class TweakService
         if (IsWin11)
         {
             WriteDword(Registry.CurrentUser, AdvancedPath, "Start_IrisRecommendations", hidden ? 0 : 1);
+            WriteDword(Registry.CurrentUser, AdvancedPath, "Start_AccountNotifications", hidden ? 0 : 1);
         }
         else
         {
@@ -575,6 +590,137 @@ public static class TweakService
     {
         if (disable) WriteDword(Registry.LocalMachine, SystemRestorePath, "DisableSR", 1);
         else DeleteValue(Registry.LocalMachine, SystemRestorePath, "DisableSR");
+    }
+
+    // ---------------- 开发与系统增强(键值参考 microsoft/WindowsDeveloperConfig) ----------------
+
+    private const string AppModelUnlockPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock";
+
+    /// <summary>开发者模式(AllowDevelopmentWithoutDevLicense=1):免签名侧加载应用、符号链接等开发特性。</summary>
+    public static bool IsDeveloperModeEnabled() => Dword(Registry.LocalMachine, AppModelUnlockPath, "AllowDevelopmentWithoutDevLicense") == 1;
+
+    public static void SetDeveloperMode(bool enable)
+    {
+        using var key = Registry.LocalMachine.CreateSubKey(AppModelUnlockPath);
+        key.SetValue("AllowDevelopmentWithoutDevLicense", enable ? 1 : 0, RegistryValueKind.DWord);
+    }
+
+    /// <summary>启用 Win32 长路径(LongPathsEnabled=1),解除 260 字符路径限制,需重启生效。</summary>
+    public static bool IsLongPathsEnabled() => Dword(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\FileSystem", "LongPathsEnabled") == 1;
+
+    public static void SetLongPaths(bool enable)
+    {
+        if (enable) WriteDword(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\FileSystem", "LongPathsEnabled", 1);
+        else DeleteValue(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\FileSystem", "LongPathsEnabled");
+    }
+
+    private const string SudoPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo";
+
+    /// <summary>启用 Win11 Sudo(Enabled=3 内联模式,同官方开发机配置;0=关闭)。仅 24H2+。</summary>
+    public static bool IsSudoEnabled() => (Dword(Registry.LocalMachine, SudoPath, "Enabled") ?? 0) >= 1;
+
+    public static void SetSudo(bool enable)
+    {
+        using var key = Registry.LocalMachine.CreateSubKey(SudoPath);
+        key.SetValue("Enabled", enable ? 3 : 0, RegistryValueKind.DWord);
+    }
+
+    private const string PersonalizePath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+    /// <summary>系统深色模式(应用与系统同时 AppsUseLightTheme=0)。写入后广播,多数应用即时换色。</summary>
+    public static bool IsSystemDarkMode() =>
+        Dword(Registry.CurrentUser, PersonalizePath, "AppsUseLightTheme") == 0
+        && Dword(Registry.CurrentUser, PersonalizePath, "SystemUsesLightTheme") == 0;
+
+    public static void SetSystemDarkMode(bool dark)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(PersonalizePath);
+        key.SetValue("AppsUseLightTheme", dark ? 0 : 1, RegistryValueKind.DWord);
+        key.SetValue("SystemUsesLightTheme", dark ? 0 : 1, RegistryValueKind.DWord);
+        BroadcastSettingChange("Windows");
+    }
+
+    /// <summary>勿扰模式:关闭全部横幅通知(NOC_GLOBAL_SETTING_TOASTS_ENABLED=0,即系统「通知」总开关)。</summary>
+    public static bool IsNotificationsOff() =>
+        Dword(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings", "NOC_GLOBAL_SETTING_TOASTS_ENABLED") == 0;
+
+    public static void SetNotificationsOff(bool off)
+    {
+        if (off) WriteDword(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings", "NOC_GLOBAL_SETTING_TOASTS_ENABLED", 0);
+        else DeleteValue(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings", "NOC_GLOBAL_SETTING_TOASTS_ENABLED");
+    }
+
+    // ---------------- 资源管理器增强(键值参考 microsoft/WindowsDeveloperConfig) ----------------
+
+    private const string CabinetStatePath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\CabinetState";
+
+    /// <summary>资源管理器默认打开「此电脑」(LaunchTo=1,默认快速访问)。</summary>
+    public static bool IsLaunchToThisPc() => Dword(Registry.CurrentUser, AdvancedPath, "LaunchTo") == 1;
+
+    public static void SetLaunchToThisPc(bool thisPc)
+    {
+        if (thisPc) WriteDword(Registry.CurrentUser, AdvancedPath, "LaunchTo", 1);
+        else DeleteValue(Registry.CurrentUser, AdvancedPath, "LaunchTo");
+        BroadcastSettingChange();
+    }
+
+    /// <summary>标题栏显示完整路径(CabinetState FullPath=1)。</summary>
+    public static bool IsFullPathInTitleBar() => Dword(Registry.CurrentUser, CabinetStatePath, "FullPath") == 1;
+
+    public static void SetFullPathInTitleBar(bool show)
+    {
+        if (show) WriteDword(Registry.CurrentUser, CabinetStatePath, "FullPath", 1);
+        else DeleteValue(Registry.CurrentUser, CabinetStatePath, "FullPath");
+        BroadcastSettingChange();
+    }
+
+    /// <summary>精简快速访问与推广提示:常用文件夹/最近文件/云文件推荐/OneDrive 同步提示全关。</summary>
+    public static bool IsQuickAccessLean() =>
+        Dword(Registry.CurrentUser, @"Software\Microsoft\Windows\CurrentVersion\Explorer", "ShowFrequent") == 0
+        && Dword(Registry.CurrentUser, AdvancedPath, "ShowSyncProviderNotifications") == 0;
+
+    public static void SetQuickAccessLean(bool lean)
+    {
+        var explorerPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer";
+        if (lean)
+        {
+            WriteDword(Registry.CurrentUser, explorerPath, "ShowFrequent", 0);
+            WriteDword(Registry.CurrentUser, explorerPath, "ShowRecent", 0);
+            WriteDword(Registry.CurrentUser, explorerPath, "ShowCloudFilesInQuickAccess", 0);
+            WriteDword(Registry.CurrentUser, AdvancedPath, "ShowSyncProviderNotifications", 0);
+        }
+        else
+        {
+            DeleteValue(Registry.CurrentUser, explorerPath, "ShowFrequent");
+            DeleteValue(Registry.CurrentUser, explorerPath, "ShowRecent");
+            DeleteValue(Registry.CurrentUser, explorerPath, "ShowCloudFilesInQuickAccess");
+            DeleteValue(Registry.CurrentUser, AdvancedPath, "ShowSyncProviderNotifications");
+        }
+        BroadcastSettingChange();
+    }
+
+    private const string SearchSettingsPath = @"Software\Microsoft\Windows\CurrentVersion\SearchSettings";
+
+    /// <summary>关闭搜索亮点(IsDynamicSearchBoxEnabled=0,搜索框不再轮播热点图)。</summary>
+    public static bool IsSearchHighlightsOff() => Dword(Registry.CurrentUser, SearchSettingsPath, "IsDynamicSearchBoxEnabled") == 0;
+
+    public static void SetSearchHighlightsOff(bool off)
+    {
+        if (off) WriteDword(Registry.CurrentUser, SearchSettingsPath, "IsDynamicSearchBoxEnabled", 0);
+        else DeleteValue(Registry.CurrentUser, SearchSettingsPath, "IsDynamicSearchBoxEnabled");
+        BroadcastSettingChange();
+    }
+
+    private const string TaskbarDevSettingsPath = AdvancedPath + @"\TaskbarDeveloperSettings";
+
+    /// <summary>任务栏右键「结束任务」(TaskbarEndTask=1,Win11 23H2+)。</summary>
+    public static bool IsTaskbarEndTaskEnabled() => Dword(Registry.CurrentUser, TaskbarDevSettingsPath, "TaskbarEndTask") == 1;
+
+    public static void SetTaskbarEndTask(bool enable)
+    {
+        if (enable) WriteDword(Registry.CurrentUser, TaskbarDevSettingsPath, "TaskbarEndTask", 1);
+        else DeleteValue(Registry.CurrentUser, TaskbarDevSettingsPath, "TaskbarEndTask");
+        BroadcastSettingChange();
     }
 
     // ---------------- 资源管理器进程 ----------------
