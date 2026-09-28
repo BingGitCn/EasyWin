@@ -34,7 +34,7 @@
         </Style>
     </Page.Resources>
 
-    <StackPanel Margin="24,8,24,24" MaxWidth="900" HorizontalAlignment="Left">
+    <StackPanel Margin="24,8,24,24" MaxWidth="1200" HorizontalAlignment="Left">
 
         <TextBlock Text="使用统计" Style="{StaticResource PageTitleText}" />
         <TextBlock Text="记录各软件的使用时长(轻量版,理念参考 Planshit/Tai);数据仅存本机,无任何网络上传"
@@ -79,8 +79,8 @@
                     <ui:Card Margin="0,0,0,10" Padding="14,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="30" />
-                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="36" />
+                                <ColumnDefinition Width="280" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
