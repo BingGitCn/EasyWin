@@ -96,6 +96,7 @@
                             FontWeight="SemiBold"
                             Text="{Binding SavedPasswordText}"
                             TextWrapping="Wrap"
+                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             Visibility="{Binding SavedPasswordText, Converter={StaticResource NotNullToVis}}" />
                         <TextBlock
                             Margin="0,6,0,0"
