@@ -46,7 +46,11 @@ public static class SettingsStore
                 if (data != null) return data;
             }
         }
-        catch { /* 损坏则用默认 */ }
+        catch (Exception ex)
+        {
+            // 读失败最可能是文件损坏,至少留痕,避免静默重置无从排查
+            Log.Warn("读取设置失败,已重置为默认: " + ex.Message);
+        }
         return new Data();
     }
 
@@ -56,7 +60,10 @@ public static class SettingsStore
         {
             try
             {
-                File.WriteAllText(Path, JsonSerializer.Serialize(_data, JsonOptions));
+                // 原子写:先写临时文件再替换,写一半崩溃/断电不会损坏现有设置
+                var temp = Path + ".tmp";
+                File.WriteAllText(temp, JsonSerializer.Serialize(_data, JsonOptions));
+                File.Move(temp, Path, overwrite: true);
             }
             catch (Exception ex)
             {

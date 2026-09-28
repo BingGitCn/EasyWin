@@ -18,7 +18,10 @@ public static class HostsService
             backup = HostsPath + $".easywin-{DateTime.Now:yyyyMMdd-HHmmss}.bak";
             File.Copy(HostsPath, backup, overwrite: true);
         }
-        File.WriteAllText(HostsPath, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        // 原子写:hosts 是系统关键文件,写一半崩溃不能截断它
+        var temp = HostsPath + ".easywin-tmp";
+        File.WriteAllText(temp, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        File.Move(temp, HostsPath, overwrite: true);
         CleanupOldBackups();
         Log.Info($"hosts 已保存(备份: {backup})");
         return backup;

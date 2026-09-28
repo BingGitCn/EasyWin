@@ -55,11 +55,11 @@
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                                 <TextBlock Grid.Column="1" Text="{Binding Address}" FontSize="12"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Grid.Column="2" FontSize="12"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                <TextBlock Grid.Column="2" FontSize="12">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Text" Value="{Binding LatencyMs, StringFormat={}{0} ms}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding TimedOut}" Value="True">
                                                     <Setter Property="Text" Value="超时" />
@@ -95,7 +95,7 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Margin="0,3">
                                 <Border CornerRadius="4" Padding="7,1" Background="#334C9CE2" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Type}" FontSize="11" FontWeight="SemiBold" Foreground="#6FB4E8" />
+                                    <TextBlock Text="{Binding Type}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentFillColorDefaultBrush}" />
                                 </Border>
                                 <TextBlock Text="{Binding Value}" FontSize="12" Margin="10,0,0,0" MaxWidth="620"
                                            TextTrimming="CharacterEllipsis" ToolTip="{Binding Value}" VerticalAlignment="Center"

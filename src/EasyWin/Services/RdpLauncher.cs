@@ -9,13 +9,14 @@ namespace EasyWin.Services;
 /// <summary>一键启动远程桌面:写 .rdp 配置 + cmdkey 预置凭据 + 拉起 mstsc。</summary>
 public static class RdpLauncher
 {
-    /// <summary>解析 "host" 或 "host:端口"。</summary>
+    /// <summary>解析 "host" 或 "host:端口"。裸 IPv6(多个冒号且无方括号)整体视为主机,不拆端口。</summary>
     public static (string host, int port) ParseServer(string server)
     {
         var s = (server ?? "").Trim();
         if (s.Length == 0) return ("", 3389);
         var idx = s.LastIndexOf(':');
-        if (idx > 0 && int.TryParse(s[(idx + 1)..], out var port) && port is > 0 and < 65536 && !s.Contains(']'))
+        var isBareIpv6 = s.Count(c => c == ':') > 1 && !s.Contains(']');
+        if (idx > 0 && !isBareIpv6 && int.TryParse(s[(idx + 1)..], out var port) && port is > 0 and < 65536 && !s.Contains(']'))
             return (s[..idx].Trim('[', ']'), port);
         return (s.Trim('[', ']'), 3389);
     }

@@ -144,11 +144,29 @@ public partial class WifiViewModel : ObservableObject
         {
             Clipboard.SetText(_savedPasswordRaw);
             Toast.Success("密码已复制到剪贴板");
+            DelayedClipboardClear(_savedPasswordRaw);
         }
         catch (Exception ex)
         {
             Toast.Error("复制失败:" + ex.Message);
         }
+    }
+
+    /// <summary>45 秒后若剪贴板仍是该密码则自动清空,防止剪贴板历史/云同步留存明文。</summary>
+    private static void DelayedClipboardClear(string password)
+    {
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            await System.Threading.Tasks.Task.Delay(45_000).ConfigureAwait(false);
+            try
+            {
+                var current = Application.Current?.Dispatcher.Invoke(
+                    () => Clipboard.ContainsText() ? Clipboard.GetText() : null);
+                if (current == password)
+                    Application.Current?.Dispatcher.Invoke(Clipboard.Clear);
+            }
+            catch { /* 剪贴板被占用等场景忽略 */ }
+        });
     }
 
     /// <summary>弹出已存 Wi-Fi 的连接二维码,手机扫码免密加入。</summary>

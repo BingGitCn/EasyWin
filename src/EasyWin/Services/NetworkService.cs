@@ -88,6 +88,10 @@ public class NetworkService
             result.Add(info);
         }
 
+        // WMI 的 COM 包装对象手动释放,不靠 finalizer 兜底(托盘常驻会周期性刷新)
+        foreach (var adapter in wmiAdapters.Values) adapter.Dispose();
+        foreach (var cfg in configs.Values) cfg.Dispose();
+
         return result
             .OrderByDescending(a => a.IsConnected)
             .ThenByDescending(a => a.IsEnabled)

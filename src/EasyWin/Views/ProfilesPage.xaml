@@ -70,7 +70,7 @@
                                             <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
                                                     Background="#334CC38A" VerticalAlignment="Center"
                                                     Visibility="{Binding InUse, Converter={StaticResource BoolToVis}}">
-                                                <TextBlock Text="使用中" FontSize="11" Foreground="#7ADFA9" />
+                                                <TextBlock Text="使用中" FontSize="11" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
                                             </Border>
                                             <Border DockPanel.Dock="Right" CornerRadius="4" Padding="8,2"
                                                     Background="{DynamicResource ControlFillColorDefaultBrush}"

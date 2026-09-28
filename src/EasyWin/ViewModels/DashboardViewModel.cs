@@ -69,13 +69,24 @@ public partial class DashboardViewModel : ObservableObject
         }
     }
 
-    /// <summary>公网出口 IP(ipify 免费接口,失败静默显示占位,不打扰仪表盘)。</summary>
+    private static string? _cachedPublicIp;
+    private static DateTime _cachedPublicIpAt = DateTime.MinValue;
+
+    /// <summary>公网出口 IP(ipify 免费接口,10 分钟缓存,失败静默,不打扰仪表盘)。</summary>
     private async Task LoadPublicIpAsync()
     {
+        if (_cachedPublicIp != null && DateTime.Now - _cachedPublicIpAt < TimeSpan.FromMinutes(10))
+        {
+            PublicIpText = _cachedPublicIp;
+            return;
+        }
         try
         {
             using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
-            PublicIpText = (await http.GetStringAsync("https://api.ipify.org").ConfigureAwait(true)).Trim();
+            var ip = (await http.GetStringAsync("https://api.ipify.org").ConfigureAwait(true)).Trim();
+            _cachedPublicIp = ip;
+            _cachedPublicIpAt = DateTime.Now;
+            PublicIpText = ip;
         }
         catch
         {

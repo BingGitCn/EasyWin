@@ -65,7 +65,7 @@
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                        TextTrimming="CharacterEllipsis" MaxWidth="160" />
                                             <TextBlock Text="RDP" FontSize="10" Margin="10,0,0,0" VerticalAlignment="Center"
-                                                       Foreground="#7ADFA9" />
+                                                       Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>

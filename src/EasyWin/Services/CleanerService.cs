@@ -7,8 +7,8 @@ namespace EasyWin.Services;
 /// <summary>单个清理目标的扫描结果。Bytes=0 且 Files>0 表示以「项数」计(如注册表记录)。</summary>
 public record CleanupScanResult(long Bytes, int Files, string? Note = null);
 
-/// <summary>单个清理目标的执行结果。</summary>
-public record CleanupResult(long FreedBytes, int Files, string? Note = null);
+/// <summary>单个清理目标的执行结果。LockedCount 供程序化累计(展示文案不要反解析)。</summary>
+public record CleanupResult(long FreedBytes, int Files, string? Note = null, int LockedCount = 0);
 
 /// <summary>清理目标:只动明确列出的路径与模式,勾选了才清理(理念参考 builtbybel/FluentCleaner,MIT)。</summary>
 public record CleanupTarget(
@@ -209,7 +209,7 @@ public static class CleanerService
             // 清掉删空后的残留空目录(不递归删除非空目录)
             TryRemoveEmptySubdirectories(path);
         }
-        return new CleanupResult(freed, deleted, locked > 0 ? $"跳过 {locked} 个占用/受保护文件" : null);
+        return new CleanupResult(freed, deleted, locked > 0 ? $"跳过 {locked} 个占用/受保护文件" : null, locked);
     }
 
     private static void TryRemoveEmptySubdirectories(string dir)
@@ -253,10 +253,9 @@ public static class CleanerService
             var result = CleanDirs([(pair.Dir, pair.Filter)]);
             freed += result.FreedBytes;
             deleted += result.Files;
-            if (result.Note != null)
-                locked += int.TryParse(result.Note.Replace("跳过 ", "").Replace(" 个占用/受保护文件", ""), out var n) ? n : 0;
+            locked += result.LockedCount;
         }
-        return new CleanupResult(freed, deleted, locked > 0 ? $"跳过 {locked} 个占用/受保护文件" : null);
+        return new CleanupResult(freed, deleted, locked > 0 ? $"跳过 {locked} 个占用/受保护文件" : null, locked);
     }
 
     /// <summary>枚举浏览器缓存目录:Edge/Chrome 按 Default 与 Profile* 配置,Firefox 按 Profiles 下每个 profile。</summary>

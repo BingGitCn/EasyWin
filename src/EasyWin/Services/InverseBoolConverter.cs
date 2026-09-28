@@ -12,11 +12,16 @@ public class InverseBoolConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => !(value is bool b && b);
 }
 
-/// <summary>非空显示转换器:null 或空串时隐藏元素。</summary>
+/// <summary>非空显示转换器:null 或空串时隐藏元素;非字符串对象(如 ImageSource)非空即显示。</summary>
 public class NotNullToVisConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object parameter, CultureInfo culture) =>
-        string.IsNullOrWhiteSpace(value as string) ? Visibility.Collapsed : Visibility.Visible;
+        value switch
+        {
+            null => Visibility.Collapsed,
+            string s => string.IsNullOrWhiteSpace(s) ? Visibility.Collapsed : Visibility.Visible,
+            _ => Visibility.Visible,
+        };
 
     public object ConvertBack(object? value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();

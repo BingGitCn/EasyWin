@@ -24,12 +24,13 @@ public class SystemInfoService
         {
             using var searcher = new ManagementObjectSearcher("SELECT Caption, OSArchitecture, Version FROM Win32_OperatingSystem");
             foreach (var o in searcher.Get())
-            {
-                caption = (string)o["Caption"];
-                version = (string)o["Version"];
-                arch = (string)o["OSArchitecture"];
-                break;
-            }
+                using (o)
+                {
+                    caption = (string)o["Caption"];
+                    version = (string)o["Version"];
+                    arch = (string)o["OSArchitecture"];
+                    break;
+                }
         }
         catch (Exception ex) { Log.Warn("读取系统版本失败: " + ex.Message); }
 
@@ -125,11 +126,13 @@ public class SystemInfoService
             using var partitions = new ManagementObjectSearcher(
                 $"ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{key}'}} WHERE AssocClass=Win32_LogicalDiskToPartition");
             foreach (var partition in partitions.Get())
+                using (partition)
             {
                 var partitionId = (string)partition["DeviceID"];
                 using var diskSearcher = new ManagementObjectSearcher(
                     $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partitionId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition");
                 foreach (var disk in diskSearcher.Get())
+                    using (disk)
                 {
                     var pnp = disk["PNPDeviceID"] as string ?? "";
                     var media = disk["MediaType"] as string ?? "";

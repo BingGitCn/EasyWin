@@ -179,7 +179,7 @@
                                         Visibility="{Binding Connected, Converter={StaticResource BoolToVis}}">
                                         <TextBlock
                                             FontSize="11"
-                                            Foreground="#7ADFA9"
+                                            Foreground="{DynamicResource SystemFillColorSuccessBrush}"
                                             Text="已连接" />
                                     </Border>
                                 </Grid>

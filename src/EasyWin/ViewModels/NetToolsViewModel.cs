@@ -208,11 +208,21 @@ public partial class NetToolsViewModel : ObservableObject
 
         try
         {
-            await Task.Run(() =>
+            var killed = await Task.Run(() =>
             {
                 using var p = System.Diagnostics.Process.GetProcessById(usage.ProcessId);
+                // PID 可能已被系统复用给别的进程:名字对不上就拒绝,防止误杀
+                if (!string.Equals(p.ProcessName, usage.ProcessName, StringComparison.OrdinalIgnoreCase))
+                    return false;
                 p.Kill(entireProcessTree: true);
+                return true;
             }).ConfigureAwait(true);
+            if (!killed)
+            {
+                Toast.Warning($"PID {usage.ProcessId} 已被其他进程复用,为避免误杀未执行,请重新查询。");
+                await CheckPortAsync().ConfigureAwait(true);
+                return;
+            }
             Toast.Success($"已结束 {usage.ProcessName}(PID {usage.ProcessId})");
             await CheckPortAsync().ConfigureAwait(true); // 复查占用是否解除
         }

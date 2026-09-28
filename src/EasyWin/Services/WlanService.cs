@@ -121,12 +121,24 @@ public static class WlanService
     {
         if (!string.IsNullOrEmpty(password) || IsOpenNetwork(auth))
         {
-            var xmlPath = await WriteProfileAsync(ssid, password ?? "", auth).ConfigureAwait(false);
-            var add = await CommandRunner.RunAsync("netsh", "wlan", "add", "profile",
-                $"filename={xmlPath}", "user=all").ConfigureAwait(false);
-            try { File.Delete(xmlPath); } catch { }
-            if (!add.Ok)
-                return (false, "写入 Wi-Fi 配置失败:" + add.AllText);
+            var xml = BuildProfileXml(ssid, password ?? "", auth);
+            var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "EasyWin");
+            Directory.CreateDirectory(dir);
+            var xmlPath = System.IO.Path.Combine(dir, $"wlan-{Guid.NewGuid():N}.xml");
+
+            // DeleteOnClose:句柄关闭(哪怕进程崩溃)系统立即回收文件,含明文密码的 XML 不留磁盘
+            using (var stream = new FileStream(xmlPath, FileMode.Create, FileAccess.Write,
+                       FileShare.Read, 4096, FileOptions.DeleteOnClose))
+            {
+                using (var writer = new StreamWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+                    await writer.WriteAsync(xml).ConfigureAwait(false);
+                await stream.FlushAsync().ConfigureAwait(false);
+
+                var add = await CommandRunner.RunAsync("netsh", "wlan", "add", "profile",
+                    $"filename={xmlPath}", "user=all").ConfigureAwait(false);
+                if (!add.Ok)
+                    return (false, "写入 Wi-Fi 配置失败:" + add.AllText);
+            }
         }
 
         var connect = await CommandRunner.RunAsync("netsh", "wlan", "connect",
@@ -149,7 +161,7 @@ public static class WlanService
         return false;
     }
 
-    private static async Task<string> WriteProfileAsync(string ssid, string password, string auth)
+    private static string BuildProfileXml(string ssid, string password, string auth)
     {
         string authentication, encryption;
         if (auth.Contains("过渡", StringComparison.OrdinalIgnoreCase) || auth.Contains("Transition", StringComparison.OrdinalIgnoreCase))
@@ -180,11 +192,7 @@ public static class WlanService
   </security></MSM>
 </WLANProfile>";
 
-        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "EasyWin");
-        Directory.CreateDirectory(dir);
-        var path = System.IO.Path.Combine(dir, $"wlan-{Guid.NewGuid():N}.xml");
-        await File.WriteAllTextAsync(path, xml, Encoding.UTF8).ConfigureAwait(false);
-        return path;
+        return xml;
     }
 
     private static string EscapeXml(string s) =>

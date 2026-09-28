@@ -255,7 +255,11 @@ public static class TweakService
         @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}";
 
     /// <summary>隐藏「3D 对象」文件夹:删除 This PC 下的 NameSpace 注册表项(需重启资源管理器)。</summary>
-    public static bool Is3DObjectsHidden() => Registry.LocalMachine.OpenSubKey(NameSpace3DKey) == null;
+    public static bool Is3DObjectsHidden()
+    {
+        using var key = Registry.LocalMachine.OpenSubKey(NameSpace3DKey);
+        return key == null;
+    }
 
     public static void Set3DObjectsHidden(bool hidden)
     {
@@ -269,7 +273,11 @@ public static class TweakService
         @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32";
 
     /// <summary>Win11 恢复 Win10 经典右键菜单:注册旧版上下文菜单 COM 重定向,默认值为空字符串。</summary>
-    public static bool IsClassicContextMenuEnabled() => Registry.CurrentUser.OpenSubKey(ClassicContextMenuKey) != null;
+    public static bool IsClassicContextMenuEnabled()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(ClassicContextMenuKey);
+        return key != null;
+    }
 
     public static void SetClassicContextMenu(bool enable)
     {
@@ -294,7 +302,11 @@ public static class TweakService
         @"cmd.exe /c takeown /f ""%1"" /r /d y && icacls ""%1"" /grant *S-1-5-32-544:F /t";
 
     /// <summary>右键菜单「管理员取得所有权」(文件+目录)。用 Administrators 组 SID,不受系统语言影响。</summary>
-    public static bool IsTakeOwnershipMenuEnabled() => Registry.ClassesRoot.OpenSubKey(TakeOwnershipFileKey) != null;
+    public static bool IsTakeOwnershipMenuEnabled()
+    {
+        using var key = Registry.ClassesRoot.OpenSubKey(TakeOwnershipFileKey);
+        return key != null;
+    }
 
     public static void SetTakeOwnershipMenu(bool enable)
     {
@@ -325,7 +337,11 @@ public static class TweakService
     private const string CmdHereKey = @"Directory\Background\shell\OpenCmdHere";
 
     /// <summary>右键菜单「在此处打开 CMD」(文件夹背景,pushd 到当前目录)。</summary>
-    public static bool IsCmdHereMenuEnabled() => Registry.ClassesRoot.OpenSubKey(CmdHereKey) != null;
+    public static bool IsCmdHereMenuEnabled()
+    {
+        using var key = Registry.ClassesRoot.OpenSubKey(CmdHereKey);
+        return key != null;
+    }
 
     public static void SetCmdHereMenu(bool enable)
     {

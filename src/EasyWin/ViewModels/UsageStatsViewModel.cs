@@ -55,16 +55,17 @@ public partial class UsageStatsViewModel : ObservableObject
         TodayActive = _rangeDays == 1;
         WeekActive = _rangeDays == 7;
         MonthActive = _rangeDays == 30;
-        Refresh();
+        _ = RefreshAsync();
     }
 
     public RelayCommand<string> SelectRangeCommand { get; }
 
     [RelayCommand]
-    private void Refresh()
+    private async Task RefreshAsync()
     {
         Rows.Clear();
-        var stats = UsageTrackerService.GetStats(_rangeDays);
+        var stats = await System.Threading.Tasks.Task.Run(() => UsageTrackerService.GetStats(_rangeDays))
+            .ConfigureAwait(true);
 
         if (stats.TotalHours <= 0)
         {

@@ -27,7 +27,7 @@
                         </TextBlock>
                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                             <Border CornerRadius="4" Padding="8,2" Background="#334CC38A" Margin="0,0,8,0">
-                                <TextBlock FontSize="11" Foreground="#7ADFA9" Text="以管理员身份运行" />
+                                <TextBlock FontSize="11" Foreground="{DynamicResource SystemFillColorSuccessBrush}" Text="以管理员身份运行" />
                             </Border>
                             <TextBlock Text="网卡切换 + 系统设置 · WPF / .NET 8 / WPF-UI"
                                        Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
@@ -35,7 +35,7 @@
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource CaptionText}">
                             <Run Text="仓库:" />
                             <Hyperlink NavigateUri="https://github.com/BingGitCn/EasyWin"
-                                       RequestNavigate="OnRepoNavigate" Foreground="#5BA8E2"
+                                       RequestNavigate="OnRepoNavigate" Foreground="{DynamicResource AccentFillColorDefaultBrush}"
                                        TextDecorations="Underline">
                                 <Run Text="github.com/BingGitCn/EasyWin" />
                             </Hyperlink>

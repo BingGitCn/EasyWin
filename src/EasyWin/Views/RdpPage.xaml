@@ -99,7 +99,7 @@
                                         <Border CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
                                                 Background="#33E2B93B"
                                                 Visibility="{Binding AdminSession, Converter={StaticResource BoolToVis}}">
-                                            <TextBlock Text="管理模式" FontSize="11" Foreground="#E2B93B" />
+                                            <TextBlock Text="管理模式" FontSize="11" Foreground="{DynamicResource SystemFillColorCautionBrush}" />
                                         </Border>
                                         <Border CornerRadius="4" Padding="8,2"
                                                 Background="{DynamicResource ControlFillColorDefaultBrush}"
@@ -157,10 +157,11 @@
                                                     <ui:SymbolIcon Symbol="Desktop24" FontSize="20">
                                                         <ui:SymbolIcon.Style>
                                                             <Style TargetType="ui:SymbolIcon">
-                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                <Setter Property="Visibility" Value="Collapsed" />
                                                                 <Style.Triggers>
+                                                                    <!--  没有真实图标时才显示兜底图标  -->
                                                                     <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
-                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                        <Setter Property="Visibility" Value="Visible" />
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
@@ -179,7 +180,7 @@
                                             <Border CornerRadius="4" Padding="8,2" Margin="0,0,6,0"
                                                     Background="#334CC38A"
                                                     Visibility="{Binding Installed, Converter={StaticResource BoolToVis}}">
-                                                <TextBlock Text="已安装" FontSize="11" Foreground="#7ADFA9" />
+                                                <TextBlock Text="已安装" FontSize="11" Foreground="{DynamicResource SystemFillColorSuccessBrush}" />
                                             </Border>
                                             <Border CornerRadius="4" Padding="8,2"
                                                     Background="{DynamicResource ControlFillColorDefaultBrush}">

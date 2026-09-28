@@ -28,7 +28,8 @@ public partial class TweakCardViewModel : ObservableObject
         _refresh = refresh;
         PromptAfterApply = promptAfterApply;
         IsRisky = risky;
-        ReloadState(silent: true);
+        // 初检不在这里做:构造在 UI 线程,几十张卡片的注册表检测会拖慢进页;
+        // 页面 Loaded 会统一走 RefreshAsync 补齐状态
     }
 
     public string Title { get; }

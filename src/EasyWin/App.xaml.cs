@@ -99,7 +99,11 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _mutex?.ReleaseMutex();
+        // 使用统计:停采样并落盘,最后 ≤2 分钟的数据不能丢
+        UsageTrackerService.Shutdown();
+
+        // 第二实例不拥有互斥量,ReleaseMutex 会抛 ApplicationException;直接释放资源即可
+        try { _mutex?.ReleaseMutex(); } catch (ApplicationException) { }
         _mutex?.Dispose();
         base.OnExit(e);
     }

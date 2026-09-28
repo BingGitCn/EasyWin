@@ -108,6 +108,17 @@ public static class UsageTrackerService
         }
     }
 
+    /// <summary>应用退出时调用:停止采样并落盘(区别于 SetEnabled 的开关语义)。</summary>
+    public static void Shutdown()
+    {
+        lock (_lock)
+        {
+            _timer?.Dispose();
+            _timer = null;
+            Flush();
+        }
+    }
+
     private static void Stop()
     {
         lock (_lock)
@@ -145,9 +156,11 @@ public static class UsageTrackerService
     private static double IdleMilliseconds()
     {
         var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
-        return GetLastInputInfo(ref info)
-            ? Math.Max(0, Environment.TickCount - (long)info.dwTime)
-            : 0;
+        if (!GetLastInputInfo(ref info)) return 0;
+        // TickCount64 无回绕;dwTime 是 32 位回绕计数,差值为负说明刚发生回绕,补 2^32
+        var elapsed = Environment.TickCount64 - info.dwTime;
+        if (elapsed < 0) elapsed += 1L << 32;
+        return Math.Max(0, elapsed);
     }
 
     private record ForegroundSample(string Name);
@@ -287,7 +300,10 @@ public static class UsageTrackerService
                 foreach (var stale in _days.Keys.Where(k => string.CompareOrdinal(k, cutoff) < 0).ToList())
                     _days.Remove(stale);
 
-                File.WriteAllText(Path, JsonSerializer.Serialize(new StorageData { Days = _days, Names = _names }));
+                // 原子写:托盘应用常被强杀,写一半不能损坏现有数据
+                var temp = Path + ".tmp";
+                File.WriteAllText(temp, JsonSerializer.Serialize(new StorageData { Days = _days, Names = _names }));
+                File.Move(temp, Path, overwrite: true);
             }
             catch (Exception ex)
             {
@@ -299,12 +315,14 @@ public static class UsageTrackerService
     /// <summary>汇总最近 N 天的使用统计(按时长降序;按友好名聚合,老数据展示时懒解析补登记)。</summary>
     public static UsageStats GetStats(int days)
     {
+        Dictionary<string, double> rawTotals;
+        int dayCount;
         lock (_lock)
         {
             Flush();
             var cutoff = DateTime.Now.AddDays(-(days - 1)).ToString("yyyy-MM-dd");
-            var totals = new Dictionary<string, double>();
-            var dayCount = 0;
+            rawTotals = [];
+            dayCount = 0;
             foreach (var (key, day) in _days)
             {
                 if (string.CompareOrdinal(key, cutoff) < 0) continue;
@@ -312,21 +330,29 @@ public static class UsageTrackerService
                 foreach (var (process, seconds) in day)
                 {
                     if (process.Length == 0 || seconds <= 0) continue;
-                    var display = DisplayNameOf(process);
-                    totals[display] = totals.GetValueOrDefault(display) + seconds;
+                    rawTotals[process] = rawTotals.GetValueOrDefault(process) + seconds;
                 }
             }
-
-            var totalSeconds = totals.Values.Sum();
-            var entries = totals
-                .OrderByDescending(kv => kv.Value)
-                .Select(kv => new UsageStatEntry(
-                    kv.Key,
-                    kv.Value / 3600.0,
-                    totalSeconds > 0 ? kv.Value / totalSeconds * 100 : 0))
-                .ToList();
-            return new UsageStats(totalSeconds / 3600.0, dayCount, entries);
         }
+
+        // 友好名懒解析可能枚举进程(每个几十毫秒),放锁外且由调用方放到后台线程,避免卡 UI
+        var totals = new Dictionary<string, double>();
+        foreach (var (process, seconds) in rawTotals)
+        {
+            if (process.Length == 0 || seconds <= 0) continue;
+            var display = DisplayNameOf(process);
+            totals[display] = totals.GetValueOrDefault(display) + seconds;
+        }
+
+        var totalSeconds = totals.Values.Sum();
+        var entries = totals
+            .OrderByDescending(kv => kv.Value)
+            .Select(kv => new UsageStatEntry(
+                kv.Key,
+                kv.Value / 3600.0,
+                totalSeconds > 0 ? kv.Value / totalSeconds * 100 : 0))
+            .ToList();
+        return new UsageStats(totalSeconds / 3600.0, dayCount, entries);
     }
 }
 

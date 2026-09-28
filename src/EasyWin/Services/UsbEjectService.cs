@@ -17,11 +17,13 @@ public static class UsbEjectService
             using var partitions = new ManagementObjectSearcher(
                 $"ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{letter}'}} WHERE AssocClass=Win32_LogicalDiskToPartition");
             foreach (var partition in partitions.Get())
+                using (partition)
             {
                 var partitionDeviceId = (string)partition["DeviceID"];
                 using var disks = new ManagementObjectSearcher(
                     $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partitionDeviceId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition");
                 foreach (var disk in disks.Get())
+                    using (disk)
                 {
                     var pnpId = disk["PNPDeviceID"] as string;
                     if (string.IsNullOrEmpty(pnpId)) continue;
