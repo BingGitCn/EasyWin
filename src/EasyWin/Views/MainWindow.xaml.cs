@@ -150,7 +150,7 @@ public partial class MainWindow : FluentWindow
             new DoubleAnimation(14, 0, TimeSpan.FromMilliseconds(220)) { EasingFunction = ease });
     }
 
-    /// <summary>支持 --page 网络与IP|配置方案|网络工具|系统设置|快捷启动|关于 直接跳转,默认仪表盘。</summary>
+    /// <summary>支持 --page 网络与IP|配置方案|网络工具|系统设置|开发环境|快捷启动|关于 直接跳转,默认仪表盘。</summary>
     private Type ResolveStartupPage()
     {
         var args = Environment.GetCommandLineArgs();
@@ -165,6 +165,7 @@ public partial class MainWindow : FluentWindow
             "网络工具" or "nettools" => typeof(NetToolsPage),
             "网络诊断" or "diag" or "diagnostics" => typeof(DiagnosticsPage),
             "系统设置" or "tweaks" => typeof(TweaksPage),
+            "开发环境" or "devenv" => typeof(DevEnvPage),
             "清理" or "cleaner" => typeof(CleanerPage),
             "使用统计" or "usage" => typeof(UsageStatsPage),
             "快捷启动" or "launcher" => typeof(LauncherPage),

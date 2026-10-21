@@ -33,6 +33,18 @@ public static class TweakService
         key.DeleteValue(name, throwOnMissingValue: false);
     }
 
+    private static string? Str(RegistryKey root, string path, string name)
+    {
+        using var key = root.OpenSubKey(path);
+        return key?.GetValue(name) as string;
+    }
+
+    private static void WriteStr(RegistryKey root, string path, string name, string value)
+    {
+        using var key = root.CreateSubKey(path);
+        key.SetValue(name, value, RegistryValueKind.String);
+    }
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, UIntPtr wParam, string? lParam,
         uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
@@ -737,6 +749,28 @@ public static class TweakService
         if (enable) WriteDword(Registry.CurrentUser, TaskbarDevSettingsPath, "TaskbarEndTask", 1);
         else DeleteValue(Registry.CurrentUser, TaskbarDevSettingsPath, "TaskbarEndTask");
         BroadcastSettingChange();
+    }
+
+    // ---------------- Edge 浏览器策略 ----------------
+
+    /// <summary>HKEY_LOCAL_MACHINE 下的 Edge 策略(微软开发机配置同款,组策略级,删值即恢复)。</summary>
+    private const string EdgePolicyPath = @"SOFTWARE\Policies\Microsoft\Edge";
+
+    public static bool IsEdgeFirstRunSkipped() =>
+        Dword(Registry.LocalMachine, EdgePolicyPath, "HideFirstRunExperience") == 1;
+
+    public static void SetEdgeFirstRunSkipped(bool skip)
+    {
+        if (skip) WriteDword(Registry.LocalMachine, EdgePolicyPath, "HideFirstRunExperience", 1);
+        else DeleteValue(Registry.LocalMachine, EdgePolicyPath, "HideFirstRunExperience");
+    }
+
+    public static bool IsEdgeNewTabBlank() => Str(Registry.LocalMachine, EdgePolicyPath, "NewTabPageLocation") == "about:blank";
+
+    public static void SetEdgeNewTabBlank(bool blank)
+    {
+        if (blank) WriteStr(Registry.LocalMachine, EdgePolicyPath, "NewTabPageLocation", "about:blank");
+        else DeleteValue(Registry.LocalMachine, EdgePolicyPath, "NewTabPageLocation");
     }
 
     // ---------------- 资源管理器进程 ----------------

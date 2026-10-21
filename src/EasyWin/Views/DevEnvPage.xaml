@@ -1,0 +1,44 @@
+<Page x:Class="EasyWin.Views.DevEnvPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:controls="clr-namespace:EasyWin.Controls"
+      mc:Ignorable="d"
+      d:DesignHeight="900"
+      d:DesignWidth="1000">
+
+    <StackPanel Margin="24,8,24,24" MaxWidth="900" HorizontalAlignment="Left">
+
+        <TextBlock Text="开发环境" Style="{StaticResource PageTitleText}" />
+        <TextBlock Text="常用开发工具 winget 一键安装 + Edge 浏览器策略,灵感来自微软 WindowsDeveloperConfig"
+                   Style="{StaticResource CaptionText}" Margin="0,4,0,0" />
+
+        <TextBlock Text="开发工具" Style="{StaticResource SectionTitleText}" />
+        <ItemsControl ItemsSource="{Binding ToolsSection}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <controls:DevToolCard />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ui:Card Padding="14">
+            <DockPanel>
+                <ui:Button DockPanel.Dock="Right" Content="重新检测" Icon="{ui:SymbolIcon ArrowSync24}"
+                           Appearance="Secondary" Command="{Binding RefreshCommand}" />
+                <TextBlock Text="安装走 winget 静默通道,只认标准安装路径,便携版/自定义路径装的不计入"
+                           Style="{StaticResource CaptionText}" VerticalAlignment="Center" />
+            </DockPanel>
+        </ui:Card>
+
+        <TextBlock Text="Edge 浏览器" Style="{StaticResource SectionTitleText}" />
+        <ItemsControl ItemsSource="{Binding EdgeSection}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <controls:TweakCard />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</Page>

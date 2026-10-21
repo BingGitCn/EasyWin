@@ -66,6 +66,8 @@
                                        TargetPageType="{x:Type views:DiagnosticsPage}" />
                 <ui:NavigationViewItem Content="系统设置" Icon="{ui:SymbolIcon Settings24}"
                                        TargetPageType="{x:Type views:TweaksPage}" />
+                <ui:NavigationViewItem Content="开发环境" Icon="{ui:SymbolIcon Toolbox24}"
+                                       TargetPageType="{x:Type views:DevEnvPage}" />
                 <ui:NavigationViewItem Content="清理" Icon="{ui:SymbolIcon Broom24}"
                                        TargetPageType="{x:Type views:CleanerPage}" />
                 <ui:NavigationViewItem Content="使用统计" Icon="{ui:SymbolIcon DataUsage24}"

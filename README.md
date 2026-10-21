@@ -52,6 +52,16 @@
 
 高危项(防火墙/SmartScreen/内存完整性/系统还原)应用前需二次确认;任务栏/资源管理器修改会广播 `WM_SETTINGCHANGE`,多数即时生效,少数需一键重启资源管理器。
 
+### 🧰 开发环境
+winget 一键安装常用开发工具 + Edge 浏览器策略(理念参考 [microsoft/WindowsDeveloperConfig](https://github.com/microsoft/WindowsDeveloperConfig),MIT):进入页面自动检测 10 款工具的安装状态(只认标准安装路径,便携版/自定义路径不计),未装点「安装」走 winget 静默通道,装完自动复检。
+
+| 工具 | 说明 |
+|---|---|
+| Windows Terminal / PowerShell 7 / Git / GitHub CLI / VS Code / .NET 8 SDK / Python 3 / Node.js LTS / PowerToys | 标准路径检测 + winget 静默安装,幂等(已装不会重装) |
+| Visual Studio 2026 Community | 默认带「.NET 桌面开发」工作负载(`--passive` 弹安装器进度窗口),下载 2~4 GB、耗时 10~40 分钟,安装前二次确认;C++/Web 等负载装完在 VS Installer 里补勾 |
+
+winget 未随系统(应用执行别名被清)时会给出明确报错;Edge 策略两项(HKLM 组策略级,删值即恢复):跳过首次运行体验、新标签页设为空白页。
+
 ### 🧹 清理
 理念参考 [builtbybel/FluentCleaner](https://github.com/builtbybel/FluentCleaner)(MIT):只清理明确列出的目标,不做注册表「深度清理」,勾选了才动手;被占用/受保护的文件自动跳过。进入页面自动扫描各目标大小,一键清理勾选项并汇总释放空间。
 
@@ -101,7 +111,7 @@ dotnet build src/EasyWin/EasyWin.csproj
 src/EasyWin/bin/Debug/net8.0-windows/EasyWin.exe
 
 # 直接跳转某页(也可用于自动化演示)
-EasyWin.exe --page=profiles   # network / profiles / nettools / diag / tweaks / cleaner / usage / launcher / about
+EasyWin.exe --page=profiles   # network / profiles / nettools / diag / tweaks / devenv / cleaner / usage / launcher / about
 
 # 发布(依赖框架单文件 → dist\EasyWin.exe)
 tools\publish.bat
@@ -111,13 +121,13 @@ tools\publish.bat
 ```
 src/EasyWin/
 ├── Models/      NetworkAdapterInfo、IpProfile、AutomationRule、LaunchItem 等
-├── Services/    NetworkService(WMI+netsh)、TweakService(注册表/服务/电源)、CleanerService(扫描/清理引擎)
-│                DiagnosticsService(Ping/路由跟踪/DNS 查询/端口扫描/子网计算)
+├── Services/    NetworkService(WMI+netsh)、TweakService(注册表/服务/电源/Edge 策略)、CleanerService(扫描/清理引擎)
+│                DevToolService(开发工具检测+winget 静默安装)、DiagnosticsService(Ping/路由跟踪/DNS 查询/端口扫描/子网计算)
 │                TrayService(托盘)、AutomationService(场景自动化)、PortLookup(端口占用)
 │                ProfileStore、SysProxyService、HostsService、SystemInfoService
 ├── ViewModels/  MVVM(CommunityToolkit.Mvvm),每页一个 VM
-├── Views/       FluentWindow 主窗体 + 12 个页面 + 方案/规则编辑窗口
-└── Controls/    TweakCard 卡片控件
+├── Views/       FluentWindow 主窗体 + 13 个页面 + 方案/规则编辑窗口
+└── Controls/    TweakCard(开关卡)、DevToolCard(工具安装卡)卡片控件
 ```
 
 ## 安全说明
