@@ -93,8 +93,20 @@ public static class DevToolService
         new("Visual Studio 2026 Community",
             "全功能 IDE,默认带「.NET 桌面开发」工作负载(C++/Web 等装完在 VS Installer 里补勾)。",
             "AppGeneric24", "Microsoft.VisualStudio.2026.Community",
-            () => new[] { "Community", "Professional", "Enterprise" }.Any(e =>
-                File.Exists(Path.Combine(ProgramFiles, "Microsoft Visual Studio", "2026", e, "Common7", "IDE", "devenv.exe"))),
+            () =>
+            {
+                // VS 2026 实际装在产品线版本号目录(18)而非年份目录;两个都查,兼容未来调整
+                foreach (var line in new[] { "18", "2026" })
+                    foreach (var edition in new[] { "Community", "Professional", "Enterprise" })
+                        if (File.Exists(Path.Combine(ProgramFiles, "Microsoft Visual Studio", line, edition, "Common7", "IDE", "devenv.exe")))
+                            return true;
+                // 兜底 vswhere:自定义安装路径也能查到;-version 限定内部版本线 18 = VS 2026
+                var vswhere = Path.Combine(ProgramFilesX86, "Microsoft Visual Studio", "Installer", "vswhere.exe");
+                if (!File.Exists(vswhere)) return false;
+                var found = CommandRunner.Run(vswhere, "-latest", "-products", "*",
+                    "-version", "[18.0,19.0)", "-property", "installationPath");
+                return found.Ok && !string.IsNullOrWhiteSpace(found.Output);
+            },
             OverrideArgs: "--passive --norestart --wait --add Microsoft.VisualStudio.Workload.ManagedDesktop --includeRecommended",
             Timeout: TimeSpan.FromMinutes(45),
             ConfirmNote: "下载约 2~4 GB,安装需要 10~40 分钟,期间会弹出 VS 安装器进度窗口,请保持网络与供电。确定现在安装吗?"),
